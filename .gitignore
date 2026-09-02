@@ -7,3 +7,4 @@ dist/
 certificados/*.pfx
 certificados/*.p12
 *.tmp.js
+.claude/settings.local.json
