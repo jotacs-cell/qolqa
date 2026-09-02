@@ -6087,6 +6087,12 @@
         });
         document.querySelectorAll('.linea-precio').forEach(function (inp, i) {
           inp.addEventListener('input', function () { lineas[i].precio_unitario = inp.value === '' ? null : Number(inp.value); actualizarSubtotalLinea(i); });
+          // Recién al salir del campo se completa a 2 decimales (ej. "8000"
+          // → "8000.00") — reformatear en cada tecla movería el cursor y
+          // sería molesto mientras se sigue escribiendo.
+          inp.addEventListener('blur', function () {
+            if (inp.value !== '') inp.value = Number(inp.value).toFixed(2);
+          });
         });
       }
 
