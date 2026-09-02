@@ -637,8 +637,6 @@
         <div class="subnav">
           <button class="subnav-item" type="button" data-goto="cotizaciones">Cotizaciones</button>
           <button class="subnav-item" type="button" data-goto="pedidos">Pedidos</button>
-          <button class="subnav-item" type="button" data-goto="ventas">Facturas y boletas</button>
-          <button class="subnav-item" type="button">Notas de crédito</button>
           <button class="subnav-item" type="button" data-goto="clientes">Clientes</button>
         </div>
       </div>
@@ -674,8 +672,10 @@
       </div>
 
       <div class="nav-group" data-view="facturacion">
-        <button class="nav-head"><svg class="icon"><use href="#i-billing"/></svg><span class="label">Facturación electrónica</span><svg class="icon chev"><use href="#i-chev-right"/></svg></button>
+        <button class="nav-head"><svg class="icon"><use href="#i-billing"/></svg><span class="label">Contabilidad</span><svg class="icon chev"><use href="#i-chev-right"/></svg></button>
         <div class="subnav">
+          <button class="subnav-item" type="button" data-goto="ventas">Facturas y boletas</button>
+          <button class="subnav-item" type="button">Notas de crédito</button>
           <button class="subnav-item" type="button" data-goto="facturacion">Comprobantes</button>
           <button class="subnav-item" type="button">Series</button>
         </div>
@@ -2154,12 +2154,15 @@
     document.querySelectorAll('[data-goto]').forEach(function (el) {
       el.addEventListener('click', function () {
         var name = el.getAttribute('data-goto');
-        var group = navGroups.filter(function (g) { return g.getAttribute('data-view') === name; })[0];
-        // Ítems anidados (ej. "Clientes"/"Cotizaciones" dentro del subnav de
-        // Ventas) no tienen su propio nav-group — sin este fallback,
-        // selectView() no encontraba ninguno y colapsaba TODOS los subnavs,
-        // incluido el que contiene al botón que acabas de tocar.
-        if (!group) group = el.closest('.nav-group');
+        // Prioriza el nav-group que contiene físicamente al botón — así, un
+        // ítem reubicado en otra sección (ej. "Facturas y boletas" ahora
+        // vive en Contabilidad aunque su vista siga llamándose "ventas")
+        // expande la sección correcta en vez de "adivinar" por el nombre
+        // de la vista. Los enlaces fuera del sidebar (ej. "Ver reporte" del
+        // dashboard) no tienen nav-group ancestro, así que caen al lookup
+        // por nombre como antes.
+        var group = el.closest('.nav-group');
+        if (!group) group = navGroups.filter(function (g) { return g.getAttribute('data-view') === name; })[0];
         selectView(name, group);
         document.querySelectorAll('.dropdown-panel.open').forEach(function (m) { m.classList.remove('open'); });
       });
@@ -6042,6 +6045,7 @@
         document.getElementById('nuevaVentaContenido').innerHTML =
           '<div class="doc-topbar"><div class="doc-title"><h3 id="nuevaVentaTitulo">Nueva venta</h3><p>' + esc(co().name) + '</p></div>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
+          '<button type="button" class="btn-ghost" id="btnGuardarComoCotizacion" title="Si el cliente todavía no confirma, guarda lo que ya escribiste como cotización — sin volver a escribirlo">Guardar como cotización</button>' +
           '<button type="submit" form="formVenta" class="btn-new" id="btnConfirmarVenta">Registrar venta</button>' +
           '</div></div>' +
           '<div class="doc-body"><form id="formVenta" novalidate>' +
@@ -6124,6 +6128,33 @@
         document.getElementById('btnAgregarLinea').addEventListener('click', function () {
           lineas.push({ producto_id: '', cantidad: 1 });
           refrescarLineas();
+        });
+        // Si el cliente todavía no confirma la compra, no tiene sentido
+        // obligar a cerrar esta pantalla y volver a escribir todo en "Nueva
+        // cotización" — se reutilizan las mismas líneas ya cargadas aquí y
+        // se guardan como cotización real (sin descontar stock).
+        document.getElementById('btnGuardarComoCotizacion').addEventListener('click', async function () {
+          var items = lineas
+            .filter(function (l) { return l.producto_id && l.cantidad > 0; })
+            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad) }; });
+          if (!items.length) { toast('Agrega al menos un producto con cantidad válida.', 'error'); return; }
+          var clienteId = form.cliente_id.value || null;
+          var btn = document.getElementById('btnGuardarComoCotizacion');
+          btn.disabled = true; btn.textContent = 'Guardando…';
+          try {
+            await posFetch('/cotizaciones', {
+              method: 'POST',
+              body: JSON.stringify({ cliente_id: clienteId ? Number(clienteId) : null, items: items }),
+            });
+            await cargarReales();
+            toast('Guardado como cotización — no se descontó stock ni se emitió comprobante.', 'success');
+            var groupVentas = navGroups.filter(function (g) { return g.getAttribute('data-view') === 'ventas'; })[0];
+            selectView('cotizaciones', groupVentas);
+          } catch (err) {
+            toast(err.message, 'error');
+          } finally {
+            btn.disabled = false; btn.textContent = 'Guardar como cotización';
+          }
         });
         form.addEventListener('submit', async function (e) {
           e.preventDefault();
