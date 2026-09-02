@@ -80,7 +80,10 @@ async function calcularItems(client, companyId, items) {
     ]);
     const producto = rows[0];
     if (!producto) throw new ApiError(422, 'PRODUCTO_INEXISTENTE', `El producto ${item.producto_id} no existe.`);
-    const precioUnitario = Number(producto.precio_venta);
+    // Igual que ventas.service.js#registrarVenta: si el ítem trae un precio
+    // manual (ej. desde "Guardar como cotización" con el precio ya editado
+    // en Nueva venta), se respeta en vez de recalcular al precio de lista.
+    const precioUnitario = item.precio_unitario != null ? Number(item.precio_unitario) : Number(producto.precio_venta);
     const subtotal = Number((precioUnitario * item.cantidad * (1 - descuento / 100)).toFixed(2));
     calculados.push({ producto_id: producto.id, cantidad: item.cantidad, precio_unitario: precioUnitario, descuento_pct: descuento, subtotal });
   }

@@ -5958,15 +5958,23 @@
 
       var lineas = [{ producto_id: '', cantidad: 1 }];
 
+      // precio_unitario en cada línea: null/undefined mientras no se
+      // sobrescribe a mano (se usa el precio de lista del producto); una
+      // vez que el vendedor edita el campo, ese valor manda incluso si la
+      // cantidad cambia después — solo se resetea al elegir OTRO producto.
+      function precioLinea(l, p) {
+        return l.precio_unitario != null ? Number(l.precio_unitario) : (p ? Number(p.precio_venta) : 0);
+      }
       function filasHtml() {
         return lineas.map(function (l, i) {
           var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
-          var subtotal = p ? Number(p.precio_venta) * Number(l.cantidad || 0) : 0;
+          var precio = precioLinea(l, p);
+          var subtotal = p ? precio * Number(l.cantidad || 0) : 0;
           return '<tr data-linea="' + i + '">' +
             '<td>' + productoPickerHtml(l.producto_id) + '</td>' +
             '<td class="mono" style="color:var(--ink-faint);font-size:11.3px">' + (p && p.codigo_barras ? esc(p.codigo_barras) : '—') + '</td>' +
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
-            '<td class="col-num mono">' + (p ? money(p.precio_venta) : '—') + '</td>' +
+            '<td class="col-num">' + (p ? '<input class="linea-precio mono" type="number" min="0" step="0.01" value="' + precio + '">' : '<span class="mono">—</span>') + '</td>' +
             '<td class="col-num mono">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
@@ -5975,7 +5983,7 @@
       function totalEstimado() {
         return lineas.reduce(function (sum, l) {
           var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
-          return sum + (p ? Number(p.precio_venta) * Number(l.cantidad || 0) : 0);
+          return sum + (p ? precioLinea(l, p) * Number(l.cantidad || 0) : 0);
         }, 0);
       }
       function refrescarLineas() {
@@ -6049,10 +6057,17 @@
           });
         });
         document.querySelectorAll('.producto-picker').forEach(function (scopeEl, i) {
-          wireProductoPicker(scopeEl, function (id) { lineas[i].producto_id = id; refrescarLineas(); });
+          wireProductoPicker(scopeEl, function (id) {
+            lineas[i].producto_id = id;
+            lineas[i].precio_unitario = null; // otro producto = vuelve a su precio de lista
+            refrescarLineas();
+          });
         });
         document.querySelectorAll('.linea-cantidad').forEach(function (inp, i) {
           inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; refrescarLineas(); });
+        });
+        document.querySelectorAll('.linea-precio').forEach(function (inp, i) {
+          inp.addEventListener('input', function () { lineas[i].precio_unitario = inp.value === '' ? null : Number(inp.value); refrescarLineas(); });
         });
       }
 
@@ -6086,7 +6101,7 @@
         document.getElementById('btnGuardarComoCotizacion').addEventListener('click', async function () {
           var items = lineas
             .filter(function (l) { return l.producto_id && l.cantidad > 0; })
-            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad) }; });
+            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad), precio_unitario: l.precio_unitario != null ? Number(l.precio_unitario) : undefined }; });
           if (!items.length) { toast('Agrega al menos un producto con cantidad válida.', 'error'); return; }
           var clienteId = form.cliente_id.value || null;
           var btn = document.getElementById('btnGuardarComoCotizacion');
@@ -6110,7 +6125,7 @@
           e.preventDefault();
           var items = lineas
             .filter(function (l) { return l.producto_id && l.cantidad > 0; })
-            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad) }; });
+            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad), precio_unitario: l.precio_unitario != null ? Number(l.precio_unitario) : undefined }; });
           if (!items.length) { toast('Agrega al menos un producto con cantidad válida.', 'error'); return; }
           var tipo = form.tipo_comprobante.value;
           var metodo = form.metodo_pago.value;
