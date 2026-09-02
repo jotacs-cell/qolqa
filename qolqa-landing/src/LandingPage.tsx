@@ -38,7 +38,7 @@ import {
  * contacto o a WhatsApp — el objetivo no es autorregistro, es agendar una
  * demo con un asesor.
  */
-const APP_LOGIN_URL = import.meta.env.VITE_APP_LOGIN_URL || "/login";
+const APP_LOGIN_URL = import.meta.env.VITE_APP_LOGIN_URL || "/#/login";
 const LEADS_API_URL = import.meta.env.VITE_LEADS_API_URL || "";
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "51999999999";
 
