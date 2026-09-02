@@ -5970,6 +5970,15 @@
       function precioLinea(l, p) {
         return l.precio_unitario != null ? Number(l.precio_unitario) : (p ? Number(p.precio_venta) : 0);
       }
+      // El precio ya incluye IGV (así se muestra en todo el sistema) — el
+      // monto de IGV contenido en cada línea se extrae hacia atrás con la
+      // misma fórmula que usa el backend para el total de la venta
+      // (ventas.service.js: operacionGravada = total / 1.18, igv = total
+      // - operacionGravada). Es solo informativo por línea; SUNAT recibe
+      // el IGV calculado sobre el total, no línea por línea.
+      function igvLinea(subtotal) {
+        return subtotal - subtotal / 1.18;
+      }
       function filasHtml() {
         return lineas.map(function (l, i) {
           var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
@@ -5980,6 +5989,7 @@
             '<td class="mono" style="color:var(--ink-faint);font-size:11.3px">' + (p && p.codigo_barras ? esc(p.codigo_barras) : '—') + '</td>' +
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
             '<td class="col-num">' + (p ? '<input class="linea-precio mono" type="number" min="0" step="0.01" value="' + precio.toFixed(2) + '">' : '<span class="mono">—</span>') + '</td>' +
+            '<td class="col-num mono linea-igv" style="color:var(--ink-faint)">' + money(igvLinea(subtotal)) + '</td>' +
             '<td class="col-num mono linea-subtotal">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
@@ -6006,8 +6016,10 @@
         var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
         var subtotal = p ? precioLinea(l, p) * Number(l.cantidad || 0) : 0;
         var fila = document.querySelector('#lineasVenta tr[data-linea="' + i + '"]');
-        var celda = fila && fila.querySelector('.linea-subtotal');
-        if (celda) celda.textContent = money(subtotal);
+        var celdaSubtotal = fila && fila.querySelector('.linea-subtotal');
+        if (celdaSubtotal) celdaSubtotal.textContent = money(subtotal);
+        var celdaIgv = fila && fila.querySelector('.linea-igv');
+        if (celdaIgv) celdaIgv.textContent = money(igvLinea(subtotal));
         actualizarTotal();
       }
       function actualizarTotal() {
@@ -6058,7 +6070,7 @@
           '<div class="field" data-field="dias_credito" id="campoDiasCredito" style="margin-top:8px' + (esCreditoPrevio ? '' : ';display:none') + '"><label>Días de crédito</label><input type="number" name="dias_credito" min="1" step="1" value="' + esc(diasCreditoPrevio || 30) + '" style="max-width:120px"></div>' +
           '</div>' +
           '</div>' +
-          '<table class="items-table"><thead><tr><th>Producto</th><th>Código</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">Subtotal</th><th></th></tr></thead>' +
+          '<table class="items-table"><thead><tr><th>Producto</th><th>Código</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">IGV (18%)</th><th class="col-num">Subtotal</th><th></th></tr></thead>' +
           '<tbody id="lineasVenta">' + filasHtml() + '</tbody></table>' +
           '<div class="doc-add-row"><button type="button" class="btn-ghost" id="btnAgregarLinea"><svg class="icon" style="width:13px;height:13px"><use href="#i-plus"/></svg>Agregar producto</button></div>' +
           '<div style="text-align:right;margin-top:10px;font-size:14px">Total: <b class="mono" id="totalEstimado">' + money(totalEstimado()) + '</b></div>' +
