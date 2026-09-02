@@ -5121,6 +5121,7 @@
           '<div class="mini-row"><span>Documento</span><span id="pedInfoDoc">' + esc(info.doc) + '</span></div>' +
           '<div class="mini-row"><span>Teléfono</span><span id="pedInfoTel">' + esc(info.tel) + '</span></div>' +
           '<div class="mini-row"><span>Correo</span><span id="pedInfoEmail">' + esc(info.email) + '</span></div>' +
+          '<div class="mini-row"><span>Dirección</span><span id="pedInfoDireccion" style="max-width:220px">' + esc(info.direccion) + '</span></div>' +
           '</div>' +
           '<div>' +
           '<div class="field" data-field="fecha_entrega"><label>Fecha de entrega <span class="opt">(opcional)</span></label><input type="date" name="fecha_entrega" value="' + (entregaPrevia || '') + '"></div>' +
@@ -5514,11 +5515,12 @@
 
     function clienteInfo(id) {
       var c = REAL.clientes.filter(function (x) { return String(x.id) === String(id); })[0];
-      if (!c) return { doc: '—', tel: '—', email: '—' };
+      if (!c) return { doc: '—', tel: '—', email: '—', direccion: '—' };
       return {
         doc: c.tipo_documento === 'sin_documento' ? 'Sin documento' : (c.tipo_documento.toUpperCase() + ' ' + (c.numero_documento || '')),
         tel: c.telefono || '—',
         email: c.email || '—',
+        direccion: c.direccion || '—',
       };
     }
     function actualizarClienteInfo(prefijo, clienteId) {
@@ -5526,9 +5528,11 @@
       var elDoc = document.getElementById(prefijo + 'InfoDoc');
       var elTel = document.getElementById(prefijo + 'InfoTel');
       var elEmail = document.getElementById(prefijo + 'InfoEmail');
+      var elDireccion = document.getElementById(prefijo + 'InfoDireccion');
       if (elDoc) elDoc.textContent = info.doc;
       if (elTel) elTel.textContent = info.tel;
       if (elEmail) elEmail.textContent = info.email;
+      if (elDireccion) elDireccion.textContent = info.direccion;
     }
 
     /* ---- PDF / ticket de un comprobante ya emitido — el endpoint exige el
@@ -6049,6 +6053,7 @@
           '<div class="mini-row"><span>Documento</span><span id="ventaInfoDoc">' + esc(info.doc) + '</span></div>' +
           '<div class="mini-row"><span>Teléfono</span><span id="ventaInfoTel">' + esc(info.tel) + '</span></div>' +
           '<div class="mini-row"><span>Correo</span><span id="ventaInfoEmail">' + esc(info.email) + '</span></div>' +
+          '<div class="mini-row"><span>Dirección</span><span id="ventaInfoDireccion" style="text-align:right;max-width:220px">' + esc(info.direccion) + '</span></div>' +
           (REAL.almacenes.length > 1
             ? '<div class="field" data-field="almacen_id"><label>Almacén de despacho</label><select name="almacen_id">' +
               REAL.almacenes.map(function (a) { return '<option value="' + a.id + '"' + (String(a.id) === String(almacenDefault) ? ' selected' : '') + '>' + esc(a.nombre) + '</option>'; }).join('') +
@@ -6232,6 +6237,7 @@ function openNuevaCotizacion(cotizacionExistente, prefiltros) {
           '<div class="mini-row"><span>Documento</span><span id="cotInfoDoc">' + esc(info.doc) + '</span></div>' +
           '<div class="mini-row"><span>Teléfono</span><span id="cotInfoTel">' + esc(info.tel) + '</span></div>' +
           '<div class="mini-row"><span>Correo</span><span id="cotInfoEmail">' + esc(info.email) + '</span></div>' +
+          '<div class="mini-row"><span>Dirección</span><span id="cotInfoDireccion" style="max-width:220px">' + esc(info.direccion) + '</span></div>' +
           '</div>' +
           '<div>' +
           '<div class="field" data-field="fecha_vencimiento"><label>Vencimiento</label><input type="date" name="fecha_vencimiento" value="' + (vencimientoPrevio || vencimientoDefault) + '"></div>' +
