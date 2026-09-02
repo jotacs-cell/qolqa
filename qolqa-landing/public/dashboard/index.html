@@ -5683,7 +5683,11 @@
             ? '<div class="pago-ribbon ' + (v.estado_pago === 'pagada' ? 'pagado' : 'pendiente') + '">' + (v.estado_pago === 'pagada' ? 'PAGADO' : 'PENDIENTE') + '</div>'
             : '') +
           '<div class="doc-topbar"><div class="doc-title"><h3 id="ventaDetalleTitulo">' + esc(codigoDoc) + '</h3><p>' + esc(tipoDoc) + '</p></div>' +
-          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          // padding-right: dentro de este mismo div (no del contenedor) para
+          // que los botones terminen antes de llegar a la esquina donde cae
+          // la cinta diagonal PAGADO/PENDIENTE — si no, el texto del último
+          // botón queda tapado por la cinta.
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap' + (comp && v.estado_documento !== 'anulada' ? ';padding-right:52px' : '') + '">' +
           (comp
             ? '<button type="button" class="btn-ghost" id="btnDetPdf">Descargar PDF</button>' +
               '<button type="button" class="btn-ghost" id="btnDetTicket80">Imprimir ticket</button>' +
@@ -5692,7 +5696,11 @@
                   '<button type="button" class="btn-ghost" id="btnDetCdr">CDR</button>'
                 : '')
             : '<button type="button" class="btn-ghost" id="btnDetRecibo">Imprimir recibo</button>') +
-          (puedeNotaCredito ? '<button type="button" class="btn-ghost" id="btnDetNotaCredito">Nota de crédito</button>' : '') +
+          (comp
+            ? (puedeNotaCredito
+                ? '<button type="button" class="btn-ghost" id="btnDetNotaCredito">Nota de crédito</button>'
+                : '<button type="button" class="btn-ghost" disabled style="opacity:.5;cursor:not-allowed" title="SUNAT todavía no acepta este comprobante — una nota de crédito solo se puede emitir sobre un comprobante ya aceptado">Nota de crédito</button>')
+            : '') +
           (puedeAnular ? '<button type="button" class="btn-ghost" id="btnDetAnular" style="color:var(--danger)" title="Solo el mismo día de emisión">Solicitar cancelación de EDI</button>' : '') +
           '</div></div>' +
           '<div class="doc-body">' +
