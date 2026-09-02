@@ -797,6 +797,15 @@
         </div>
       </section>
 
+      <!-- ============ NUEVA VENTA — página completa, no modal (mismo
+           estilo Odoo que el detalle de venta). ============ -->
+      <section class="view" id="view-nueva-venta">
+        <button type="button" id="btnVolverNuevaVenta" class="btn-ghost" style="margin-bottom:14px">← Volver</button>
+        <div class="list-card" style="position:relative;overflow:hidden">
+          <div id="nuevaVentaContenido"></div>
+        </div>
+      </section>
+
       <!-- ============ COTIZACIONES ============ -->
       <section class="view" id="view-cotizaciones">
         <div class="page-head"><h1>Cotizaciones</h1><p>Se crean cuando todavía no se confirma la venta — al confirmar, se convierten en venta real con su comprobante.</p></div>
@@ -2078,6 +2087,17 @@
     if (btnVolverDetalleVenta) {
       btnVolverDetalleVenta.addEventListener('click', function () {
         var destino = ventaDetalleVolverA || 'ventas';
+        var group = navGroups.filter(function (g) { return g.getAttribute('data-view') === destino; })[0];
+        selectView(destino, group);
+      });
+    }
+    // Mismo patrón que el detalle de venta: recuerda desde qué lista se
+    // abrió "Nueva venta" para que "Volver" regrese ahí.
+    var nuevaVentaVolverA = null;
+    var btnVolverNuevaVenta = document.getElementById('btnVolverNuevaVenta');
+    if (btnVolverNuevaVenta) {
+      btnVolverNuevaVenta.addEventListener('click', function () {
+        var destino = nuevaVentaVolverA || 'ventas';
         var group = navGroups.filter(function (g) { return g.getAttribute('data-view') === destino; })[0];
         selectView(destino, group);
       });
@@ -5916,6 +5936,12 @@
         return;
       }
 
+      // Guarda a dónde volver, igual que el detalle de venta.
+      var viewActivoAntesNuevaVenta = document.querySelector('.view.active');
+      if (viewActivoAntesNuevaVenta && viewActivoAntesNuevaVenta.id !== 'view-nueva-venta') {
+        nuevaVentaVolverA = viewActivoAntesNuevaVenta.id.replace('view-', '');
+      }
+
       var lineas = [{ producto_id: '', cantidad: 1 }];
 
       function filasHtml() {
@@ -5952,11 +5978,10 @@
         var info = clienteInfo(clientePrevio);
         var hoy = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
         var almacenDefault = almacenPrevio || (REAL.almacenes.filter(function (a) { return a.es_principal; })[0] || REAL.almacenes[0] || {}).id;
-        openModal(
-          '<div class="doc-topbar"><div class="doc-title"><h3 id="modalTitle">Nueva venta</h3><p>' + esc(co().name) + '</p></div>' +
+        document.getElementById('nuevaVentaContenido').innerHTML =
+          '<div class="doc-topbar"><div class="doc-title"><h3 id="nuevaVentaTitulo">Nueva venta</h3><p>' + esc(co().name) + '</p></div>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
           '<button type="submit" form="formVenta" class="btn-new" id="btnConfirmarVenta">Registrar venta</button>' +
-          '<button class="modal-close" data-close aria-label="Cerrar">&times;</button>' +
           '</div></div>' +
           '<div class="doc-body"><form id="formVenta" novalidate>' +
           '<div class="doc-info-grid">' +
@@ -5993,9 +6018,8 @@
           '<tbody id="lineasVenta">' + filasHtml() + '</tbody></table>' +
           '<div class="doc-add-row"><button type="button" class="btn-ghost" id="btnAgregarLinea"><svg class="icon" style="width:13px;height:13px"><use href="#i-plus"/></svg>Agregar producto</button></div>' +
           '<div style="text-align:right;margin-top:10px;font-size:14px">Total: <b class="mono" id="totalEstimado">' + money(totalEstimado()) + '</b></div>' +
-          '</form></div>',
-          'lg'
-        );
+          '</form></div>';
+        selectView('nueva-venta', null);
         wire();
       }
 
@@ -6054,6 +6078,9 @@
             });
             await cargarReales();
             mostrarResultadoVenta(resultado.venta, resultado.comprobante);
+            var destinoTrasVenta = nuevaVentaVolverA || 'ventas';
+            var groupTrasVenta = navGroups.filter(function (g) { return g.getAttribute('data-view') === destinoTrasVenta; })[0];
+            selectView(destinoTrasVenta, groupTrasVenta);
           } catch (err) {
             btn.disabled = false; btn.textContent = 'Registrar venta';
             toast(err.message, 'error');
