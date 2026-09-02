@@ -2,6 +2,10 @@ import { useState } from "react";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000/api/v1";
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "51999999999";
+const RECUPERAR_PASSWORD_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  "Hola, olvidé mi contraseña del sistema y necesito ayuda para recuperarla."
+)}`;
 
 type Empresa = { id: string; razon_social: string; nombre_comercial: string | null };
 
@@ -165,7 +169,9 @@ export default function Login() {
                     Contraseña
                   </label>
                   <a
-                    href="#recuperar"
+                    href={RECUPERAR_PASSWORD_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm font-medium text-blue-700 hover:text-blue-800"
                   >
                     ¿Olvidaste tu contraseña?
@@ -240,7 +246,7 @@ export default function Login() {
 
         <div className="absolute bottom-10 left-10 right-10 rounded-2xl bg-white/95 p-6 shadow-xl backdrop-blur-sm">
           <p className="text-lg font-semibold text-slate-800">
-            Únete a más de 500 empresas que automatizan sus ventas.
+            Automatiza las ventas de tu negocio, sin complicarte.
           </p>
           <p className="mt-2 text-sm text-slate-500">
             Facturación electrónica, inventario y reportes, todo en un solo
