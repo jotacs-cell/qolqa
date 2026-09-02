@@ -4340,7 +4340,7 @@
       tbody.innerHTML = pendientes.map(function (v) {
         var vencida = v.fecha_vencimiento && v.fecha_vencimiento.slice(0, 10) < hoyISO;
         var vencimientoTxt = v.fecha_vencimiento
-          ? new Date(v.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+          ? new Date(v.fecha_vencimiento).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
           : '—';
         return '<tr>' +
           '<td class="mono">' + esc(docCode(v)) + '</td>' +
@@ -5701,7 +5701,7 @@
           '<div class="mini-row"><span>Vendedor</span><span>' + esc(vendedorNombre) + '</span></div>' +
           '<div class="mini-row"><span>Método de pago</span><span>' + esc(v.metodo_pago.charAt(0).toUpperCase() + v.metodo_pago.slice(1)) + '</span></div>' +
           (v.fecha_vencimiento
-            ? '<div class="mini-row"><span>Vencimiento</span><span>' + esc(new Date(v.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })) +
+            ? '<div class="mini-row"><span>Vencimiento</span><span>' + esc(new Date(v.fecha_vencimiento).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })) +
               (v.estado_pago === 'pendiente' && v.fecha_vencimiento.slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') +
               '</span></div>'
             : '') +
