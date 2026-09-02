@@ -5674,9 +5674,7 @@
         // antes se ocultaba el mismo día solo por decisión de esta pantalla,
         // no por una regla real; ahora se muestra siempre que el comprobante
         // esté aceptado, igual que en cualquier sistema de facturación real.
-        var esMismoDia = new Date(v.fecha).toDateString() === new Date().toDateString();
         var puedeNotaCredito = aceptadoPorSunat && v.estado_documento !== 'anulada';
-        var puedeAnular = v.estado_documento !== 'anulada' && (!aceptadoPorSunat || esMismoDia);
 
         document.getElementById('ventaDetalleContenido').innerHTML =
           (comp && v.estado_documento !== 'anulada'
@@ -5701,7 +5699,6 @@
                 ? '<button type="button" class="btn-ghost" id="btnDetNotaCredito">Nota de crédito</button>'
                 : '<button type="button" class="btn-ghost" disabled style="opacity:.5;cursor:not-allowed" title="SUNAT todavía no acepta este comprobante — una nota de crédito solo se puede emitir sobre un comprobante ya aceptado">Nota de crédito</button>')
             : '') +
-          (puedeAnular ? '<button type="button" class="btn-ghost" id="btnDetAnular" style="color:var(--danger)" title="Solo el mismo día de emisión">Solicitar cancelación de EDI</button>' : '') +
           '</div></div>' +
           '<div class="doc-body">' +
           '<span class="pill ' + banda.tono + '" style="font-size:11px;padding:5px 12px">' + esc(banda.texto) + '</span>' +
@@ -5795,9 +5792,6 @@
         if (puedeNotaCredito) {
           document.getElementById('btnDetNotaCredito').addEventListener('click', function () { abrirNotaCreditoDesdeDetalle(comp.id, codigoDoc); });
         }
-        if (puedeAnular) {
-          document.getElementById('btnDetAnular').addEventListener('click', function () { anularVentaDesdeDetalle(v.id, codigoDoc); });
-        }
       } catch (err) {
         toast(err.message, 'error');
       }
@@ -5826,37 +5820,6 @@
           await posFetch('/comprobantes/' + comprobanteId + '/anular', { method: 'PATCH', body: JSON.stringify({ motivo: motivo }) });
           closeModal();
           toast('Nota de crédito emitida — ' + codigoDoc + ' quedó anulado.', 'success');
-          await cargarReales();
-        } catch (err) {
-          btn.disabled = false;
-          toast(err.message, 'error');
-        }
-      });
-    }
-
-    /** Anular una venta que todavía no fue aceptada por SUNAT (o un recibo
-     * interno) — repone el stock. Ver PATCH /ventas/:id/anular. */
-    function anularVentaDesdeDetalle(ventaId, codigoDoc) {
-      openModal(
-        '<div class="modal-head"><div><h3 id="modalTitle">Anular ' + esc(codigoDoc) + '</h3><p>Repone el stock vendido.</p></div>' +
-        '<button class="modal-close" data-close aria-label="Cerrar">&times;</button></div>' +
-        '<div class="modal-body"><form id="formAnularVenta" novalidate>' +
-        '<div class="field" data-field="motivo"><label>Motivo</label><input type="text" name="motivo" placeholder="Ej. Cliente se arrepintió"><span class="err">Escribe el motivo.</span></div>' +
-        '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new" style="background:var(--danger);border-color:var(--danger)">Anular venta</button></div>' +
-        '</form></div>'
-      );
-      var form = document.getElementById('formAnularVenta');
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        clearErrors(form);
-        var motivo = form.motivo.value.trim();
-        if (!motivo) { fieldError(form.querySelector('[data-field=motivo]'), 'Escribe el motivo.'); return; }
-        var btn = form.querySelector('button[type=submit]');
-        btn.disabled = true;
-        try {
-          await posFetch('/ventas/' + ventaId + '/anular', { method: 'PATCH', body: JSON.stringify({ motivo: motivo }) });
-          closeModal();
-          toast('Venta anulada.', 'success');
           await cargarReales();
         } catch (err) {
           btn.disabled = false;
