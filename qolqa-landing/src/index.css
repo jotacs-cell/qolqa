@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Movimiento flotante extremadamente sutil para las tarjetas del Hero —
+   respeta prefers-reduced-motion vía la clase motion-safe: de Tailwind,
+   que ya no aplica la animación cuando el usuario lo desactiva. */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
