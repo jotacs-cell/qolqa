@@ -787,6 +787,16 @@
         </div>
       </section>
 
+      <!-- ============ DETALLE DE VENTA — página completa, no modal
+           (estilo Odoo: clic en un registro, se abre la página con un
+           "Volver" arriba en vez de una ventana flotante encima). ============ -->
+      <section class="view" id="view-venta-detalle">
+        <button type="button" id="btnVolverDetalleVenta" class="btn-ghost" style="margin-bottom:14px">← Volver</button>
+        <div class="list-card" style="position:relative;overflow:hidden">
+          <div id="ventaDetalleContenido"></div>
+        </div>
+      </section>
+
       <!-- ============ COTIZACIONES ============ -->
       <section class="view" id="view-cotizaciones">
         <div class="page-head"><h1>Cotizaciones</h1><p>Se crean cuando todavía no se confirma la venta — al confirmar, se convierten en venta real con su comprobante.</p></div>
@@ -2059,6 +2069,18 @@
         if (g.querySelector('.subnav')) g.classList.toggle('expanded', isActive);
       });
       if (group) crumb.innerHTML = '<b>' + labelFor(group) + '</b>';
+    }
+    // Recuerda desde qué lista (Ventas o Facturación) se abrió el detalle de
+    // una venta, para que el botón "Volver" del detalle regrese ahí — no
+    // siempre a la misma lista fija.
+    var ventaDetalleVolverA = null;
+    var btnVolverDetalleVenta = document.getElementById('btnVolverDetalleVenta');
+    if (btnVolverDetalleVenta) {
+      btnVolverDetalleVenta.addEventListener('click', function () {
+        var destino = ventaDetalleVolverA || 'ventas';
+        var group = navGroups.filter(function (g) { return g.getAttribute('data-view') === destino; })[0];
+        selectView(destino, group);
+      });
     }
     navGroups.forEach(function (g) {
       g.querySelector('.nav-head').addEventListener('click', function () {
@@ -5542,6 +5564,13 @@
      * crédito (si SUNAT ya aceptó) o anular (si todavía no). ---- */
     async function abrirDetalleVentaReal(ventaId) {
       try {
+        // Guarda a dónde volver SOLO si venimos de una lista de verdad — si
+        // ya estábamos en el detalle (ej. al refrescar tras registrar una
+        // nota), no se pisa el origen original.
+        var viewActivoAntes = document.querySelector('.view.active');
+        if (viewActivoAntes && viewActivoAntes.id !== 'view-venta-detalle') {
+          ventaDetalleVolverA = viewActivoAntes.id.replace('view-', '');
+        }
         var v = await posFetch('/ventas/' + ventaId);
         var cliente = REAL.clientes.filter(function (c) { return String(c.id) === String(v.cliente_id); })[0];
         var info = clienteInfo(v.cliente_id);
@@ -5570,11 +5599,11 @@
         var puedeNotaCredito = aceptadoPorSunat && v.estado_documento !== 'anulada';
         var puedeAnular = v.estado_documento !== 'anulada' && (!aceptadoPorSunat || esMismoDia);
 
-        openModal(
+        document.getElementById('ventaDetalleContenido').innerHTML =
           (comp && v.estado_documento !== 'anulada'
             ? '<div class="pago-ribbon ' + (v.estado_pago === 'pagada' ? 'pagado' : 'pendiente') + '">' + (v.estado_pago === 'pagada' ? 'PAGADO' : 'PENDIENTE') + '</div>'
             : '') +
-          '<div class="doc-topbar"><div class="doc-title"><h3 id="modalTitle">' + esc(codigoDoc) + '</h3><p>' + esc(tipoDoc) + '</p></div>' +
+          '<div class="doc-topbar"><div class="doc-title"><h3 id="ventaDetalleTitulo">' + esc(codigoDoc) + '</h3><p>' + esc(tipoDoc) + '</p></div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
           (comp
             ? '<button type="button" class="btn-ghost" id="btnDetPdf">Descargar PDF</button>' +
@@ -5586,7 +5615,6 @@
             : '<button type="button" class="btn-ghost" id="btnDetRecibo">Imprimir recibo</button>') +
           (puedeNotaCredito ? '<button type="button" class="btn-ghost" id="btnDetNotaCredito">Nota de crédito</button>' : '') +
           (puedeAnular ? '<button type="button" class="btn-ghost" id="btnDetAnular" style="color:var(--danger)" title="Solo el mismo día de emisión">Solicitar cancelación de EDI</button>' : '') +
-          '<button class="modal-close" data-close aria-label="Cerrar">&times;</button>' +
           '</div></div>' +
           '<div class="doc-body">' +
           '<span class="pill ' + banda.tono + '" style="font-size:11px;padding:5px 12px">' + esc(banda.texto) + '</span>' +
@@ -5625,9 +5653,9 @@
           '</form>' +
           '<div id="notasVentaLista" style="font-size:12.8px;color:var(--ink-faint)">Cargando notas…</div>' +
           '</div>' +
-          '</div>',
-          'lg'
-        );
+          '</div>';
+
+        selectView('venta-detalle', null);
 
         posFetch('/ventas/' + ventaId + '/notas').then(function (res) {
           var notas = res.data || [];
