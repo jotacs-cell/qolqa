@@ -100,7 +100,7 @@ export default function Login() {
 
           <img
             src="/logo-facturapos.png"
-            alt="FacturaPOS"
+            alt="FacturasPOS"
             className="mx-auto h-24 w-auto object-contain"
           />
 

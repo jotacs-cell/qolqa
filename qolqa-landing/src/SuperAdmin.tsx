@@ -213,7 +213,7 @@ function Sidebar({
   const content = (
     <div className="flex h-full flex-col bg-slate-900 text-slate-300">
       <div className="flex items-center gap-2 border-b border-slate-800 px-6 py-5">
-        <img src="/logo-facturapos-dark.png" alt="FacturaPOS" className="h-9 w-auto object-contain" />
+        <img src="/logo-facturapos-dark.png" alt="FacturasPOS" className="h-9 w-auto object-contain" />
         <span className="text-sm font-semibold text-white">Super Admin</span>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-6">

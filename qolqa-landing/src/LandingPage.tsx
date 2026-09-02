@@ -76,7 +76,7 @@ const FEATURES = [
     description:
       "Emite boletas y facturas electrónicas validadas por SUNAT en segundos, directo desde el punto de venta.",
     image: "/screenshots/ventas.png",
-    imageAlt: "Pantalla real de Ventas de FacturaPOS mostrando facturas y boletas emitidas",
+    imageAlt: "Pantalla real de Ventas de FacturasPOS mostrando facturas y boletas emitidas",
   },
   {
     icon: Warehouse,
@@ -211,7 +211,7 @@ function Logo() {
     <div className="flex-shrink-0 flex items-center gap-2">
       <img
         src="/logo-facturapos.png"
-        alt="FacturaPOS"
+        alt="FacturasPOS"
         className="h-16 w-auto object-contain"
       />
     </div>
@@ -334,7 +334,7 @@ function Hero() {
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-          FacturaPOS es el sistema web que automatiza tus procesos comerciales
+          FacturasPOS es el sistema web que automatiza tus procesos comerciales
           sin instalaciones pesadas ni pérdida de datos.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -366,7 +366,7 @@ function ProblemSection() {
           </h2>
           <p className="mt-4 text-lg text-slate-600">
             Así pierden tiempo y dinero la mayoría de negocios todos los días
-            — hasta que automatizan todo con FacturaPOS.
+            — hasta que automatizan todo con FacturasPOS.
           </p>
         </Reveal>
 
@@ -434,7 +434,7 @@ function BusinessTypes() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
-            FacturaPOS es para tu negocio
+            FacturasPOS es para tu negocio
           </h2>
           <p className="mt-4 text-lg text-slate-600">
             No importa el rubro o el tamaño de tu emprendimiento.
@@ -565,7 +565,7 @@ function Pricing() {
               </a>
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                  `Hola, quiero adquirir el plan ${plan.name} de FacturaPOS.`
+                  `Hola, quiero adquirir el plan ${plan.name} de FacturasPOS.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -588,14 +588,14 @@ function Pricing() {
 
 const FAQ_ITEMS = [
   {
-    pregunta: "¿Cuánto tiempo toma implementar FacturaPOS en mi negocio?",
+    pregunta: "¿Cuánto tiempo toma implementar FacturasPOS en mi negocio?",
     respuesta:
       "La mayoría de negocios ya está facturando el mismo día: cargas tu catálogo de productos, configuras tus series de comprobantes y quedas listo. Si tienes muchos productos, un asesor te ayuda con la carga inicial para que no lo hagas fila por fila.",
   },
   {
     pregunta: "¿Necesito comprar equipos especiales para usarlo?",
     respuesta:
-      "No. FacturaPOS funciona desde el navegador, en la computadora, tablet o celular que ya tienes. Una impresora térmica y un lector de código de barras son opcionales, no un requisito para empezar a vender.",
+      "No. FacturasPOS funciona desde el navegador, en la computadora, tablet o celular que ya tienes. Una impresora térmica y un lector de código de barras son opcionales, no un requisito para empezar a vender.",
   },
   {
     pregunta: "¿Puedo tener varios usuarios con permisos distintos?",
@@ -717,7 +717,7 @@ function ContactSection() {
             </h2>
             <p className="mt-3 text-slate-600">
               Déjanos tus datos y un asesor te mostrará en vivo cómo
-              FacturaPOS puede optimizar tu negocio.
+              FacturasPOS puede optimizar tu negocio.
             </p>
           </div>
 
@@ -801,7 +801,7 @@ function ContactSection() {
           <div className="mt-6 text-center">
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                "Hola, quiero agendar una demo de FacturaPOS."
+                "Hola, quiero agendar una demo de FacturasPOS."
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -824,7 +824,7 @@ function Footer() {
         <div className="flex flex-col items-center justify-between gap-8 sm:flex-row">
           <img
             src="/logo-facturapos-dark.png"
-            alt="FacturaPOS"
+            alt="FacturasPOS"
             className="h-9 w-auto object-contain"
           />
 
@@ -862,7 +862,7 @@ function Footer() {
 
         <div className="mt-10 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
           <p>
-            © {new Date().getFullYear()} FacturaPOS. Todos los derechos
+            © {new Date().getFullYear()} FacturasPOS. Todos los derechos
             reservados.
           </p>
         </div>
@@ -875,7 +875,7 @@ function WhatsAppButton() {
   return (
     <a
       href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-        "Hola, quiero más información sobre FacturaPOS."
+        "Hola, quiero más información sobre FacturasPOS."
       )}`}
       target="_blank"
       rel="noopener noreferrer"

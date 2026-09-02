@@ -9,7 +9,7 @@ function money(n) {
 
 async function nombreEmpresa(companyId) {
   const { rows } = await pool.query('SELECT razon_social, nombre_comercial FROM empresas WHERE id = $1', [companyId]);
-  return (rows[0] && (rows[0].nombre_comercial || rows[0].razon_social)) || 'FacturaPOS';
+  return (rows[0] && (rows[0].nombre_comercial || rows[0].razon_social)) || 'FacturasPOS';
 }
 
 /** Convierte cada reporte a la forma genérica { titulo, columnas, filas } que ya entienden los 3 exportadores. */
