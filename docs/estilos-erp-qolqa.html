@@ -1,0 +1,519 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@600;700&family=Work+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap">
+<title>Estilos del ERP Qolqa</title>
+
+<style>
+  :root {
+    --bg: #f5f6f1;
+    --surface: #ffffff;
+    --surface-2: #ebede5;
+    --border: #d9dbd0;
+    --ink: #1e241d;
+    --ink-soft: #5a6355;
+    --ink-faint: #8e9587;
+    --accent: #46523f;
+    --accent-soft: #e4e8dd;
+    --shadow-sm: 0 1px 2px rgba(30, 36, 29, 0.06);
+    --shadow-md: 0 10px 28px rgba(30, 36, 29, 0.1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14170f;
+      --surface: #1a1e17;
+      --surface-2: #212519;
+      --border: #2d3325;
+      --ink: #e8ece1;
+      --ink-soft: #a9b19f;
+      --ink-faint: #6d7566;
+      --accent: #b9c4ab;
+      --accent-soft: #2a3122;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14170f;
+    --surface: #1a1e17;
+    --surface-2: #212519;
+    --border: #2d3325;
+    --ink: #e8ece1;
+    --ink-soft: #a9b19f;
+    --ink-faint: #6d7566;
+    --accent: #b9c4ab;
+    --accent-soft: #2a3122;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", sans-serif;
+    line-height: 1.55;
+  }
+  h1, h2, h3 { font-family: "Manrope", sans-serif; font-weight: 800; text-wrap: balance; margin: 0; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 24px 90px; }
+
+  header.page-head { max-width: 68ch; margin-bottom: 40px; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  h1.title { font-size: clamp(26px, 3.6vw, 34px); margin-bottom: 12px; }
+  .page-sub { color: var(--ink-soft); font-size: 15.5px; margin: 0; }
+
+  .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width: 980px) { .gallery { grid-template-columns: 1fr; } }
+
+  .style-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .style-meta { padding: 20px 22px 16px; }
+  .style-name { font-size: 18px; margin-bottom: 5px; }
+  .style-blurb { color: var(--ink-soft); font-size: 13.6px; margin: 0 0 14px; max-width: 46ch; }
+
+  .swatches { display: flex; gap: 6px; margin-bottom: 12px; }
+  .swatch { width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgba(0,0,0,0.08); }
+
+  .font-labels { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.6px; color: var(--ink-faint); }
+  .font-labels b { color: var(--ink-soft); font-weight: 600; }
+
+  .mock-frame { border-top: 1px solid var(--border); padding: 18px; background: var(--surface-2); }
+
+  /* -------- shared icon sprite -------- */
+  .nav-icon { width: 15px; height: 15px; flex: none; }
+  .nav-icon use { stroke: currentColor; }
+
+  /* ================= dashboard mock (fixed palette per card, by design) ================= */
+  .dash {
+    display: grid;
+    grid-template-columns: 148px 1fr;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    border: 1px solid var(--m-border);
+    background: var(--m-bg);
+    color: var(--m-ink);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.14);
+  }
+  .dash-sidebar {
+    background: var(--m-sidebar);
+    color: var(--m-sidebar-ink);
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dash-brand {
+    font-family: var(--m-display);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    padding: 0 6px 12px;
+    color: var(--m-sidebar-ink-strong);
+  }
+  .dash-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-family: var(--m-body);
+    font-size: 11.3px;
+    color: var(--m-sidebar-ink);
+  }
+  .dash-nav-item.active {
+    background: var(--m-sidebar-active-bg);
+    color: var(--m-sidebar-active-ink);
+    font-weight: 500;
+  }
+
+  .dash-main { display: flex; flex-direction: column; min-width: 0; }
+  .dash-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--m-border);
+    background: var(--m-topbar-bg);
+  }
+  .dash-company {
+    font-family: var(--m-body);
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--m-ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dash-company .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--m-accent); flex: none; }
+  .dash-search {
+    font-family: var(--m-body);
+    font-size: 10.8px;
+    color: var(--m-ink-faint);
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    width: 130px;
+  }
+  .dash-avatar {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--m-accent); color: var(--m-accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--m-display); font-size: 9.5px; font-weight: 700;
+  }
+
+  .dash-body { padding: 14px 16px 16px; flex: 1; }
+  .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .kpi {
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-radius);
+    padding: 8px 10px;
+  }
+  .kpi-label { font-family: var(--m-body); font-size: 9.6px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--m-ink-faint); margin-bottom: 4px; }
+  .kpi-value { font-family: var(--m-mono); font-size: 14px; font-weight: 500; color: var(--m-ink); font-variant-numeric: tabular-nums; }
+  .kpi-value.warn { color: var(--m-warning); }
+
+  .dash-table {
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-radius);
+    overflow: hidden;
+  }
+  .dt-head, .dt-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.3fr 0.8fr 0.9fr;
+    padding: 7px 12px;
+    align-items: center;
+  }
+  .dt-head {
+    font-family: var(--m-body);
+    font-size: 9.6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--m-ink-faint);
+    border-bottom: 1px solid var(--m-border);
+  }
+  .dt-row { font-family: var(--m-body); font-size: 11px; color: var(--m-ink); border-bottom: 1px solid var(--m-border); }
+  .dt-row:last-child { border-bottom: none; }
+  .dt-row .doc { font-family: var(--m-mono); font-size: 10.6px; }
+  .dt-row .amt { font-family: var(--m-mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .status-pill {
+    display: inline-block;
+    font-family: var(--m-body);
+    font-size: 9.6px;
+    padding: 2px 7px;
+    border-radius: var(--m-pill-radius);
+    width: fit-content;
+  }
+  .status-pill.accepted { background: var(--m-success-bg); color: var(--m-success); }
+  .status-pill.pending { background: var(--m-warning-bg); color: var(--m-warning); }
+
+  footer.note {
+    max-width: 62ch;
+    margin: 46px auto 0;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13.5px;
+  }
+  footer.note strong { color: var(--ink-soft); }
+</style>
+
+<!-- shared line-icon sprite, referenced by every card via <use> -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <defs>
+    <symbol id="ic-home" viewBox="0 0 20 20"><path d="M3 9.5 10 4l7 5.5V16a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z" fill="none" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-sales" viewBox="0 0 20 20"><path d="M3 15.5 8 10l3.5 3L17 6.5M17 6.5h-4M17 6.5v4" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-inventory" viewBox="0 0 20 20"><path d="M3 6.5 10 3l7 3.5-7 3.5-7-3.5Z" fill="none" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 6.5V14l7 3.5 7-3.5V6.5M10 10v7.5" fill="none" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-finance" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.8" fill="none" stroke-width="1.4"/><path d="M10 6.3v7.4M8 12.3c0 .9.9 1.6 2 1.6s2-.7 2-1.6c0-2.2-4-1.3-4-3.4 0-.9.9-1.6 2-1.6s2 .7 2 1.6" fill="none" stroke-width="1.3" stroke-linecap="round"/></symbol>
+    <symbol id="ic-billing" viewBox="0 0 20 20"><rect x="4.5" y="2.8" width="11" height="14.4" rx="1.2" fill="none" stroke-width="1.4"/><path d="M7 6.6h6M7 9.6h6M7 12.6h3.5" fill="none" stroke-width="1.3" stroke-linecap="round"/></symbol>
+    <symbol id="ic-config" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.5" fill="none" stroke-width="1.4"/><path d="M10 3.3v1.9M10 14.8v1.9M16.7 10h-1.9M5.2 10H3.3M14.9 5.1l-1.3 1.3M6.4 13.6l-1.3 1.3M14.9 14.9l-1.3-1.3M6.4 6.4 5.1 5.1" fill="none" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="page-head">
+    <span class="eyebrow">Segunda ronda — identidad visual del ERP</span>
+    <h1 class="title">Estilos para el panel completo de Qolqa</h1>
+    <p class="page-sub">Ya no es solo el punto de venta: esto es cómo se vería el ERP entero — barra lateral con los módulos, KPIs del día y la tabla de comprobantes recientes — en cuatro direcciones distintas. Elige una y la aplico a todo el sistema.</p>
+  </header>
+
+  <div class="gallery">
+
+    <!-- ======================= A. ACERO CORPORATIVO (continuidad) ======================= -->
+    <article class="style-card">
+      <div class="style-meta">
+        <h2 class="style-name">Acero Corporativo</h2>
+        <p class="style-blurb">La misma identidad que ya eligieron para el punto de venta, ahora extendida al ERP completo — para que todo el sistema se sienta como un solo producto, no como módulos pegados.</p>
+        <div class="swatches">
+          <div class="swatch" style="background:#2c4a63"></div>
+          <div class="swatch" style="background:#3f7ea6"></div>
+          <div class="swatch" style="background:#eef1f4"></div>
+          <div class="swatch" style="background:#2f7d5c"></div>
+          <div class="swatch" style="background:#b3791f"></div>
+        </div>
+        <div class="font-labels">
+          <span><b>Títulos</b> Libre Franklin</span>
+          <span><b>Texto</b> IBM Plex Sans</span>
+          <span><b>Datos</b> IBM Plex Mono</span>
+        </div>
+      </div>
+      <div class="mock-frame">
+        <div class="dash" style="
+          --m-bg:#eef1f4; --m-surface:#ffffff; --m-border:#d7dee3;
+          --m-ink:#1a2530; --m-ink-faint:#8695a1;
+          --m-sidebar:#1d3446; --m-sidebar-ink:#a9c0d1; --m-sidebar-ink-strong:#ffffff;
+          --m-sidebar-active-bg:#2c4a63; --m-sidebar-active-ink:#ffffff;
+          --m-topbar-bg:#ffffff; --m-accent:#3f7ea6; --m-accent-ink:#ffffff;
+          --m-warning:#b3791f; --m-warning-bg:#f7ecd7; --m-success:#2f7d5c; --m-success-bg:#e1f0e8;
+          --m-display:'Libre Franklin',sans-serif; --m-body:'IBM Plex Sans',sans-serif; --m-mono:'IBM Plex Mono',monospace;
+          --m-radius:6px; --m-pill-radius:4px;
+        ">
+          <div class="dash-sidebar">
+            <div class="dash-brand">QOLQA</div>
+            <div class="dash-nav-item active"><svg class="nav-icon"><use href="#ic-home"/></svg>Inicio</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-sales"/></svg>Ventas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-inventory"/></svg>Inventario</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-finance"/></svg>Finanzas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-billing"/></svg>Facturación</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-config"/></svg>Configuración</div>
+          </div>
+          <div class="dash-main">
+            <div class="dash-topbar">
+              <div class="dash-company"><span class="dot"></span>Ferretería San Martín</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="dash-search">Buscar F001-…</div>
+                <div class="dash-avatar">AT</div>
+              </div>
+            </div>
+            <div class="dash-body">
+              <div class="dash-kpis">
+                <div class="kpi"><div class="kpi-label">Ventas hoy</div><div class="kpi-value">S/ 1,284</div></div>
+                <div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value">S/ 6,410</div></div>
+                <div class="kpi"><div class="kpi-label">Por pagar</div><div class="kpi-value">S/ 2,050</div></div>
+                <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-value warn">7</div></div>
+              </div>
+              <div class="dash-table">
+                <div class="dt-head"><span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span></div>
+                <div class="dt-row"><span class="doc">F001-00231</span><span>Constructora Lima SAC</span><span class="amt">S/ 842.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">B001-01188</span><span>Cliente varios</span><span class="amt">S/ 56.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">F001-00232</span><span>Comercial Andes EIRL</span><span class="amt">S/ 1,930.00</span><span class="status-pill pending">Enviando</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ======================= B. TURBA Y BRONCE ======================= -->
+    <article class="style-card">
+      <div class="style-meta">
+        <h2 class="style-name">Turba y Bronce</h2>
+        <p class="style-blurb">Fondo casi negro con calidez de turba, cifras en bronce — un panel que se siente como el libro contable de una empresa seria, pensado para quien lo mira todo el día.</p>
+        <div class="swatches">
+          <div class="swatch" style="background:#211d18"></div>
+          <div class="swatch" style="background:#c68b4a"></div>
+          <div class="swatch" style="background:#2c2721"></div>
+          <div class="swatch" style="background:#e9e2d6"></div>
+          <div class="swatch" style="background:#7c9b7e"></div>
+        </div>
+        <div class="font-labels">
+          <span><b>Títulos</b> Fraunces</span>
+          <span><b>Texto</b> Public Sans</span>
+          <span><b>Datos</b> JetBrains Mono</span>
+        </div>
+      </div>
+      <div class="mock-frame">
+        <div class="dash" style="
+          --m-bg:#211d18; --m-surface:#2a251f; --m-border:#3c3629;
+          --m-ink:#ece5d8; --m-ink-faint:#8f8674;
+          --m-sidebar:#181510; --m-sidebar-ink:#a99e88; --m-sidebar-ink-strong:#f0e6d4;
+          --m-sidebar-active-bg:#3a2f1f; --m-sidebar-active-ink:#e9c48c;
+          --m-topbar-bg:#221e18; --m-accent:#c68b4a; --m-accent-ink:#1c1712;
+          --m-warning:#d99b4e; --m-warning-bg:#3a2c17; --m-success:#8fb090; --m-success-bg:#20291f;
+          --m-display:'Fraunces',serif; --m-body:'Public Sans',sans-serif; --m-mono:'JetBrains Mono',monospace;
+          --m-radius:4px; --m-pill-radius:3px;
+        ">
+          <div class="dash-sidebar">
+            <div class="dash-brand" style="font-weight:500;font-style:italic">Qolqa</div>
+            <div class="dash-nav-item active"><svg class="nav-icon"><use href="#ic-home"/></svg>Inicio</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-sales"/></svg>Ventas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-inventory"/></svg>Inventario</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-finance"/></svg>Finanzas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-billing"/></svg>Facturación</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-config"/></svg>Configuración</div>
+          </div>
+          <div class="dash-main">
+            <div class="dash-topbar">
+              <div class="dash-company"><span class="dot"></span>Ferretería San Martín</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="dash-search">Buscar F001-…</div>
+                <div class="dash-avatar">AT</div>
+              </div>
+            </div>
+            <div class="dash-body">
+              <div class="dash-kpis">
+                <div class="kpi"><div class="kpi-label">Ventas hoy</div><div class="kpi-value">S/ 1,284</div></div>
+                <div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value">S/ 6,410</div></div>
+                <div class="kpi"><div class="kpi-label">Por pagar</div><div class="kpi-value">S/ 2,050</div></div>
+                <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-value warn">7</div></div>
+              </div>
+              <div class="dash-table">
+                <div class="dt-head"><span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span></div>
+                <div class="dt-row"><span class="doc">F001-00231</span><span>Constructora Lima SAC</span><span class="amt">S/ 842.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">B001-01188</span><span>Cliente varios</span><span class="amt">S/ 56.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">F001-00232</span><span>Comercial Andes EIRL</span><span class="amt">S/ 1,930.00</span><span class="status-pill pending">Enviando</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ======================= C. NOCTURNO ÍNDIGO ======================= -->
+    <article class="style-card">
+      <div class="style-meta">
+        <h2 class="style-name">Nocturno Índigo</h2>
+        <p class="style-blurb">Modo oscuro de fábrica, con azul índigo y un teal de apoyo para estados — el panel de quien tiene el sistema abierto toda la jornada y quiere que resalte lo que necesita atención.</p>
+        <div class="swatches">
+          <div class="swatch" style="background:#14151c"></div>
+          <div class="swatch" style="background:#7b83f6"></div>
+          <div class="swatch" style="background:#1c1e28"></div>
+          <div class="swatch" style="background:#e9ebf3"></div>
+          <div class="swatch" style="background:#4fd1c5"></div>
+        </div>
+        <div class="font-labels">
+          <span><b>Títulos</b> Sora</span>
+          <span><b>Texto</b> Work Sans</span>
+          <span><b>Datos</b> Fira Code</span>
+        </div>
+      </div>
+      <div class="mock-frame">
+        <div class="dash" style="
+          --m-bg:#14151c; --m-surface:#1b1d27; --m-border:#2b2e3c;
+          --m-ink:#e9ebf3; --m-ink-faint:#7d81a0;
+          --m-sidebar:#0e0f16; --m-sidebar-ink:#8c90b3; --m-sidebar-ink-strong:#f2f3fa;
+          --m-sidebar-active-bg:#282b6b; --m-sidebar-active-ink:#c3c8ff;
+          --m-topbar-bg:#181a24; --m-accent:#7b83f6; --m-accent-ink:#0e0f16;
+          --m-warning:#e0b15b; --m-warning-bg:#332a17; --m-success:#4fd1c5; --m-success-bg:#123330;
+          --m-display:'Sora',sans-serif; --m-body:'Work Sans',sans-serif; --m-mono:'Fira Code',monospace;
+          --m-radius:8px; --m-pill-radius:999px;
+        ">
+          <div class="dash-sidebar">
+            <div class="dash-brand">QOLQA</div>
+            <div class="dash-nav-item active"><svg class="nav-icon"><use href="#ic-home"/></svg>Inicio</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-sales"/></svg>Ventas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-inventory"/></svg>Inventario</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-finance"/></svg>Finanzas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-billing"/></svg>Facturación</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-config"/></svg>Configuración</div>
+          </div>
+          <div class="dash-main">
+            <div class="dash-topbar">
+              <div class="dash-company"><span class="dot"></span>Ferretería San Martín</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="dash-search">Buscar F001-…</div>
+                <div class="dash-avatar">AT</div>
+              </div>
+            </div>
+            <div class="dash-body">
+              <div class="dash-kpis">
+                <div class="kpi"><div class="kpi-label">Ventas hoy</div><div class="kpi-value">S/ 1,284</div></div>
+                <div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value">S/ 6,410</div></div>
+                <div class="kpi"><div class="kpi-label">Por pagar</div><div class="kpi-value">S/ 2,050</div></div>
+                <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-value warn">7</div></div>
+              </div>
+              <div class="dash-table">
+                <div class="dt-head"><span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span></div>
+                <div class="dt-row"><span class="doc">F001-00231</span><span>Constructora Lima SAC</span><span class="amt">S/ 842.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">B001-01188</span><span>Cliente varios</span><span class="amt">S/ 56.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">F001-00232</span><span>Comercial Andes EIRL</span><span class="amt">S/ 1,930.00</span><span class="status-pill pending">Enviando</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ======================= D. MENTA FISCAL ======================= -->
+    <article class="style-card">
+      <div class="style-meta">
+        <h2 class="style-name">Menta Fiscal</h2>
+        <p class="style-blurb">Verde-azulado frío sobre un gris con aire, el color que más se asocia con lo contable y lo confiable — el más "software de finanzas" de las cuatro opciones, sin caer en lo genérico.</p>
+        <div class="swatches">
+          <div class="swatch" style="background:#f1f4f0"></div>
+          <div class="swatch" style="background:#1f7a5c"></div>
+          <div class="swatch" style="background:#16352c"></div>
+          <div class="swatch" style="background:#cfe3d8"></div>
+          <div class="swatch" style="background:#b3791f"></div>
+        </div>
+        <div class="font-labels">
+          <span><b>Títulos</b> Manrope</span>
+          <span><b>Texto</b> Source Sans 3</span>
+          <span><b>Datos</b> IBM Plex Mono</span>
+        </div>
+      </div>
+      <div class="mock-frame">
+        <div class="dash" style="
+          --m-bg:#f1f4f0; --m-surface:#ffffff; --m-border:#d7ded8;
+          --m-ink:#16352c; --m-ink-faint:#87968d;
+          --m-sidebar:#123028; --m-sidebar-ink:#8fae9e; --m-sidebar-ink-strong:#eef6f0;
+          --m-sidebar-active-bg:#1f7a5c; --m-sidebar-active-ink:#ffffff;
+          --m-topbar-bg:#ffffff; --m-accent:#1f7a5c; --m-accent-ink:#ffffff;
+          --m-warning:#b3791f; --m-warning-bg:#f6ecd6; --m-success:#1f7a5c; --m-success-bg:#deeee5;
+          --m-display:'Manrope',sans-serif; --m-body:'Source Sans 3',sans-serif; --m-mono:'IBM Plex Mono',monospace;
+          --m-radius:8px; --m-pill-radius:5px;
+        ">
+          <div class="dash-sidebar">
+            <div class="dash-brand">QOLQA</div>
+            <div class="dash-nav-item active"><svg class="nav-icon"><use href="#ic-home"/></svg>Inicio</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-sales"/></svg>Ventas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-inventory"/></svg>Inventario</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-finance"/></svg>Finanzas</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-billing"/></svg>Facturación</div>
+            <div class="dash-nav-item"><svg class="nav-icon"><use href="#ic-config"/></svg>Configuración</div>
+          </div>
+          <div class="dash-main">
+            <div class="dash-topbar">
+              <div class="dash-company"><span class="dot"></span>Ferretería San Martín</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="dash-search">Buscar F001-…</div>
+                <div class="dash-avatar">AT</div>
+              </div>
+            </div>
+            <div class="dash-body">
+              <div class="dash-kpis">
+                <div class="kpi"><div class="kpi-label">Ventas hoy</div><div class="kpi-value">S/ 1,284</div></div>
+                <div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value">S/ 6,410</div></div>
+                <div class="kpi"><div class="kpi-label">Por pagar</div><div class="kpi-value">S/ 2,050</div></div>
+                <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-value warn">7</div></div>
+              </div>
+              <div class="dash-table">
+                <div class="dt-head"><span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span></div>
+                <div class="dt-row"><span class="doc">F001-00231</span><span>Constructora Lima SAC</span><span class="amt">S/ 842.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">B001-01188</span><span>Cliente varios</span><span class="amt">S/ 56.00</span><span class="status-pill accepted">Aceptado</span></div>
+                <div class="dt-row"><span class="doc">F001-00232</span><span>Comercial Andes EIRL</span><span class="amt">S/ 1,930.00</span><span class="status-pill pending">Enviando</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <footer class="note">Dime cuál de las cuatro — <strong>Acero Corporativo</strong>, <strong>Turba y Bronce</strong>, <strong>Nocturno Índigo</strong> o <strong>Menta Fiscal</strong> — y la aplico al dashboard, la barra lateral y el resto de pantallas del ERP.</footer>
+</div>

@@ -1,0 +1,929 @@
+<title>API del Punto de Venta</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f1efe8;
+    --card: #ffffff;
+    --card-border: #dcd7ca;
+    --ink: #1d2320;
+    --ink-soft: #565f5a;
+    --ink-faint: #8a9089;
+    --accent: #2f5d50;
+    --accent-ink: #eef4f1;
+    --accent-soft: #e2ebe6;
+    --code-bg: #eae7dc;
+    --code-ink: #2a2f2c;
+    --get: #2f5f8f;
+    --get-bg: #e4ecf3;
+    --post: #2f5d50;
+    --post-bg: #e2ebe6;
+    --put: #96601f;
+    --put-bg: #f2e7d6;
+    --patch: #6b4a96;
+    --patch-bg: #eae3f2;
+    --delete: #9a3a3a;
+    --delete-bg: #f3e0e0;
+    --shadow: 0 1px 2px rgba(29,35,32,0.06), 0 6px 20px -12px rgba(29,35,32,0.25);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181a;
+      --card: #191e1c;
+      --card-border: #2a312d;
+      --ink: #eae7dd;
+      --ink-soft: #a8ada4;
+      --ink-faint: #6c726b;
+      --accent: #74c1aa;
+      --accent-ink: #10201b;
+      --accent-soft: #1c2b26;
+      --code-bg: #10201b;
+      --code-ink: #d9e4de;
+      --get: #7fb0e0;
+      --get-bg: #182734;
+      --post: #74c1aa;
+      --post-bg: #16261f;
+      --put: #e3ac5f;
+      --put-bg: #2c2314;
+      --patch: #c3a6ea;
+      --patch-bg: #241d31;
+      --delete: #e0908f;
+      --delete-bg: #2c1a1a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -12px rgba(0,0,0,0.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14181a;
+    --card: #191e1c;
+    --card-border: #2a312d;
+    --ink: #eae7dd;
+    --ink-soft: #a8ada4;
+    --ink-faint: #6c726b;
+    --accent: #74c1aa;
+    --accent-ink: #10201b;
+    --accent-soft: #1c2b26;
+    --code-bg: #10201b;
+    --code-ink: #d9e4de;
+    --get: #7fb0e0;
+    --get-bg: #182734;
+    --post: #74c1aa;
+    --post-bg: #16261f;
+    --put: #e3ac5f;
+    --put-bg: #2c2314;
+    --patch: #c3a6ea;
+    --patch-bg: #241d31;
+    --delete: #e0908f;
+    --delete-bg: #2c1a1a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -12px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 { font-family: "IBM Plex Serif", Georgia, serif; text-wrap: balance; margin: 0; }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  a { color: var(--accent); }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---------- header ---------- */
+  header.top {
+    padding: 3.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  header.top h1 {
+    font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header.top p.lede {
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    margin: 0.9rem 0 0;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.6rem;
+    margin-top: 1.6rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+  }
+  .meta-row strong { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- layout ---------- */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 3rem;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    nav.toc { position: static; order: -1; }
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 1.5rem;
+    font-size: 0.88rem;
+  }
+  nav.toc .group { margin-bottom: 1.4rem; }
+  nav.toc .group-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 0.5rem;
+  }
+  nav.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  nav.toc a { color: var(--ink-soft); text-decoration: none; display: flex; align-items: center; gap: 0.45rem; }
+  nav.toc a:hover { color: var(--ink); }
+  @media (max-width: 860px) {
+    nav.toc .group { display: inline-block; margin-right: 1.6rem; }
+    nav.toc { display: flex; overflow-x: auto; gap: 0; padding-bottom: 0.6rem; border-bottom: 1px solid var(--card-border); }
+    nav.toc ul { flex-direction: row; gap: 1rem; white-space: nowrap; }
+  }
+
+  .badge-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; flex: none; }
+  .badge-dot.get { background: var(--get); }
+  .badge-dot.post { background: var(--post); }
+  .badge-dot.put, .badge-dot.patch { background: var(--put); }
+  .badge-dot.delete { background: var(--delete); }
+
+  main { min-width: 0; }
+
+  section.block { margin-bottom: 3.2rem; scroll-margin-top: 1.5rem; }
+  section.block > h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+  }
+  section.block > h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.9rem;
+    color: var(--ink-faint);
+    font-weight: 400;
+  }
+  section.block > p.intro { color: var(--ink-soft); max-width: 68ch; margin: 0.7rem 0 1.8rem; }
+
+  /* ---------- role table ---------- */
+  table.roles {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0 2rem;
+    font-size: 0.92rem;
+  }
+  table.roles th, table.roles td {
+    text-align: left;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--card-border);
+    vertical-align: top;
+  }
+  table.roles th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  .scroll-x { overflow-x: auto; }
+
+  /* ---------- endpoint card ---------- */
+  .endpoint {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.4rem;
+    overflow: hidden;
+  }
+  .endpoint-head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 1.2rem;
+    flex-wrap: wrap;
+  }
+  .method {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    padding: 0.25rem 0.55rem;
+    border-radius: 5px;
+    flex: none;
+  }
+  .method.get { color: var(--get); background: var(--get-bg); }
+  .method.post { color: var(--post); background: var(--post-bg); }
+  .method.put { color: var(--put); background: var(--put-bg); }
+  .method.patch { color: var(--patch); background: var(--patch-bg); }
+  .method.delete { color: var(--delete); background: var(--delete-bg); }
+
+  .path { font-family: "IBM Plex Mono", monospace; font-size: 0.95rem; font-weight: 500; }
+  .desc { color: var(--ink-soft); font-size: 0.92rem; margin-left: auto; }
+  @media (max-width: 640px) { .desc { margin-left: 0; flex-basis: 100%; } }
+
+  .role-pill {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    flex: none;
+  }
+
+  .endpoint-body {
+    border-top: 1px solid var(--card-border);
+    padding: 1.1rem 1.2rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .field-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.45rem;
+  }
+  pre {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 0.85rem 1rem;
+    border-radius: 7px;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    overflow-x: auto;
+    tab-size: 2;
+  }
+  .errors { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.86rem; }
+  .errors .row { display: flex; gap: 0.7rem; }
+  .errors .code { font-family: "IBM Plex Mono", monospace; color: var(--delete); flex: none; width: 2.6rem; }
+  .errors .cond { color: var(--ink-soft); }
+
+  .note {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 0.9rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .note strong { color: var(--ink); }
+
+  /* ---------- status table ---------- */
+  table.status {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  table.status th, table.status td {
+    text-align: left;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--card-border);
+  }
+  table.status th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  table.status td.code { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+  td.code.ok { color: var(--post); }
+  td.code.err { color: var(--delete); }
+  td.code.warn { color: var(--put); }
+
+  footer.end {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--card-border);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+</style>
+
+<div class="shell">
+
+  <header class="top">
+    <p class="eyebrow">Sistema de ventas — web</p>
+    <h1>Diseño de la API REST</h1>
+    <p class="lede">Especificación de endpoints para los módulos de autenticación, inventario y motor de ventas. Backend en Node.js/Express, base de datos PostgreSQL.</p>
+    <div class="meta-row">
+      <span><strong>Base URL</strong> /api</span>
+      <span><strong>Auth</strong> Bearer JWT en header <code>Authorization</code></span>
+      <span><strong>Formato</strong> application/json</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc">
+      <div class="group">
+        <p class="group-label">Convenciones</p>
+        <ul><li><a href="#convenciones">Formato y errores</a></li></ul>
+      </div>
+      <div class="group">
+        <p class="group-label">01 · Autenticación</p>
+        <ul>
+          <li><a href="#auth-login"><span class="badge-dot post"></span>Login</a></li>
+          <li><a href="#auth-registro"><span class="badge-dot post"></span>Registro</a></li>
+          <li><a href="#auth-me"><span class="badge-dot get"></span>Perfil actual</a></li>
+        </ul>
+      </div>
+      <div class="group">
+        <p class="group-label">02 · Inventario</p>
+        <ul>
+          <li><a href="#prod-listar"><span class="badge-dot get"></span>Listar</a></li>
+          <li><a href="#prod-detalle"><span class="badge-dot get"></span>Detalle</a></li>
+          <li><a href="#prod-codigo"><span class="badge-dot get"></span>Por código</a></li>
+          <li><a href="#prod-crear"><span class="badge-dot post"></span>Crear</a></li>
+          <li><a href="#prod-editar"><span class="badge-dot put"></span>Editar</a></li>
+          <li><a href="#prod-estado"><span class="badge-dot patch"></span>Activar/desactivar</a></li>
+          <li><a href="#prod-stock"><span class="badge-dot patch"></span>Ajustar stock</a></li>
+        </ul>
+      </div>
+      <div class="group">
+        <p class="group-label">03 · Motor de ventas</p>
+        <ul>
+          <li><a href="#venta-crear"><span class="badge-dot post"></span>Registrar venta</a></li>
+          <li><a href="#venta-listar"><span class="badge-dot get"></span>Listar</a></li>
+          <li><a href="#venta-detalle"><span class="badge-dot get"></span>Detalle</a></li>
+          <li><a href="#venta-anular"><span class="badge-dot patch"></span>Anular</a></li>
+        </ul>
+      </div>
+      <div class="group">
+        <p class="group-label">04 · Notas de crédito</p>
+        <ul>
+          <li><a href="#nc-crear"><span class="badge-dot post"></span>Emitir nota</a></li>
+          <li><a href="#nc-anular"><span class="badge-dot patch"></span>Anular comprobante</a></li>
+          <li><a href="#nc-listar"><span class="badge-dot get"></span>Listar por comprobante</a></li>
+          <li><a href="#nc-pdf"><span class="badge-dot get"></span>PDF (boleta/factura)</a></li>
+        </ul>
+      </div>
+      <div class="group">
+        <p class="group-label">05 · Dashboard</p>
+        <ul>
+          <li><a href="#dash-hoy"><span class="badge-dot get"></span>Resumen de hoy</a></li>
+          <li><a href="#dash-recaudacion"><span class="badge-dot get"></span>Recaudación diaria</a></li>
+          <li><a href="#dash-productos"><span class="badge-dot get"></span>Productos top</a></li>
+          <li><a href="#dash-vendedores"><span class="badge-dot get"></span>Rendimiento por vendedor</a></li>
+        </ul>
+      </div>
+      <div class="group">
+        <p class="group-label">Referencia</p>
+        <ul><li><a href="#status">Códigos HTTP</a></li></ul>
+      </div>
+    </nav>
+
+    <main>
+
+      <section class="block" id="convenciones">
+        <h2>Convenciones generales</h2>
+        <p class="intro">Reglas que aplican a todos los endpoints de abajo, para no repetirlas en cada uno.</p>
+
+        <div class="note" style="margin-bottom:1rem;">
+          Todo endpoint que no sea <code>/api/auth/login</code> exige el header <code>Authorization: Bearer &lt;token&gt;</code>. Sin token válido: <strong>401</strong>. Con token válido pero rol insuficiente: <strong>403</strong>.
+        </div>
+
+        <p class="field-label">Formato estándar de error</p>
+        <pre>{
+  "error": {
+    "codigo": "STOCK_INSUFICIENTE",
+    "mensaje": "No hay stock suficiente para el producto solicitado.",
+    "detalle": { "producto_id": 42, "stock_disponible": 3 }
+  }
+}</pre>
+
+        <p class="field-label" style="margin-top:1rem;">Paginación (listados)</p>
+        <p style="color:var(--ink-soft); font-size:0.92rem; margin:0 0 0.6rem;">Query params: <code>page</code> (default 1), <code>limit</code> (default 20, máx 100). Respuesta:</p>
+        <pre>{
+  "data": [ /* ... */ ],
+  "paginacion": { "page": 1, "limit": 20, "total": 134, "total_paginas": 7 }
+}</pre>
+      </section>
+
+      <!-- ===================== 01 AUTENTICACIÓN ===================== -->
+      <section class="block" id="auth">
+        <h2><span class="num">01</span> Autenticación y accesos</h2>
+        <p class="intro">Login con JWT y control de acceso por rol. Los tres roles del sistema son <code>admin</code>, <code>supervisor</code> y <code>cajero</code>.</p>
+
+        <div class="scroll-x">
+          <table class="roles">
+            <tr><th>Rol</th><th>Puede</th></tr>
+            <tr><td><code>cajero</code></td><td>Operar el POS (registrar ventas), consultar productos, ver su propio historial de ventas.</td></tr>
+            <tr><td><code>supervisor</code></td><td>Todo lo del cajero, además gestionar el catálogo de productos y anular ventas.</td></tr>
+            <tr><td><code>admin</code></td><td>Todo lo del supervisor, además gestionar usuarios y ver reportes globales.</td></tr>
+          </table>
+        </div>
+
+        <div class="endpoint" id="auth-login">
+          <div class="endpoint-head">
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/login</span>
+            <span class="desc">Autentica credenciales y emite un token JWT</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{
+  "email": "cajero1@tienda.com",
+  "password": "••••••••"
+}</pre>
+            </div>
+            <div>
+              <p class="field-label">Respuesta 200</p>
+              <pre>{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expira_en": 28800,
+  "usuario": {
+    "id": 7, "nombre": "Ana Torres",
+    "email": "cajero1@tienda.com", "rol": "cajero"
+  }
+}</pre>
+            </div>
+            <div class="errors">
+              <div class="row"><span class="code">401</span><span class="cond">Credenciales inválidas.</span></div>
+              <div class="row"><span class="code">403</span><span class="cond">Usuario desactivado (<code>usuarios.activo = false</code>).</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="auth-registro">
+          <div class="endpoint-head">
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/usuarios</span>
+            <span class="role-pill">admin</span>
+            <span class="desc">Crea una cuenta de personal (cajero, supervisor o admin)</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{
+  "nombre": "Luis Peña",
+  "email": "lpena@tienda.com",
+  "password": "contraseña-temporal",
+  "rol": "cajero"
+}</pre>
+            </div>
+            <div>
+              <p class="field-label">Respuesta 201</p>
+              <pre>{
+  "id": 12, "nombre": "Luis Peña",
+  "email": "lpena@tienda.com", "rol": "cajero",
+  "activo": true, "creado_en": "2026-08-27T15:04:00Z"
+}</pre>
+            </div>
+            <div class="note">La contraseña se hashea con <strong>bcrypt</strong> antes de guardar; <code>password_hash</code> nunca se incluye en ninguna respuesta.</div>
+            <div class="errors">
+              <div class="row"><span class="code">409</span><span class="cond">El email ya está registrado.</span></div>
+              <div class="row"><span class="code">422</span><span class="cond">Rol inválido o contraseña muy corta.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="auth-me">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/auth/me</span>
+            <span class="desc">Devuelve los datos del usuario del token actual</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Respuesta 200</p>
+              <pre>{ "id": 7, "nombre": "Ana Torres", "email": "cajero1@tienda.com", "rol": "cajero" }</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 02 INVENTARIO ===================== -->
+      <section class="block" id="inventario">
+        <h2><span class="num">02</span> Inventario (productos)</h2>
+        <p class="intro">CRUD del catálogo. La eliminación es siempre lógica: un producto con ventas asociadas nunca se borra de la base de datos, solo cambia su <code>estado</code>.</p>
+
+        <div class="endpoint" id="prod-listar">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/productos</span>
+            <span class="desc">Lista paginada, con filtros</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Query params</p>
+              <pre>?search=coca+cola      // busca en nombre y código de barras
+&estado=activo         // activo | inactivo | descontinuado
+&page=1&limit=20</pre>
+            </div>
+            <div>
+              <p class="field-label">Respuesta 200</p>
+              <pre>{
+  "data": [
+    {
+      "id": 101, "codigo_barras": "7501055310209",
+      "nombre": "Coca-Cola 500ml", "precio_venta": 3.50,
+      "stock": 84, "estado": "activo"
+    }
+  ],
+  "paginacion": { "page": 1, "limit": 20, "total": 312, "total_paginas": 16 }
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-detalle">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/productos/:id</span>
+            <span class="desc">Detalle completo de un producto</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="errors"><div class="row"><span class="code">404</span><span class="cond">No existe un producto con ese id.</span></div></div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-codigo">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/productos/codigo/:codigo_barras</span>
+            <span class="desc">Búsqueda directa por código de barras — la usa el POS al escanear</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="note">Endpoint de alta frecuencia: cada escaneo en el POS dispara esta llamada. Debe responder desde el índice de <code>codigo_barras</code>, sin cálculos extra.</div>
+            <div class="errors"><div class="row"><span class="code">404</span><span class="cond">Código no encontrado — el frontend debe permitir registrar un producto nuevo desde aquí.</span></div></div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-crear">
+          <div class="endpoint-head">
+            <span class="method post">POST</span>
+            <span class="path">/api/productos</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Crea un producto nuevo en el catálogo</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{
+  "codigo_barras": "7501055310209",
+  "nombre": "Coca-Cola 500ml",
+  "precio_compra": 2.20,
+  "precio_venta": 3.50,
+  "stock": 100
+}</pre>
+            </div>
+            <div class="errors">
+              <div class="row"><span class="code">409</span><span class="cond">El código de barras ya existe.</span></div>
+              <div class="row"><span class="code">422</span><span class="cond">precio_venta menor a precio_compra, o stock negativo.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-editar">
+          <div class="endpoint-head">
+            <span class="method put">PUT</span>
+            <span class="path">/api/productos/:id</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Reemplaza los datos editables del producto (no el stock)</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="note">Cambiar <code>precio_venta</code> aquí <strong>no</strong> afecta ventas ya emitidas: <code>detalle_ventas.precio_unitario_historico</code> queda congelado.</div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-estado">
+          <div class="endpoint-head">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/productos/:id/estado</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Activa, desactiva o descontinúa un producto (soft delete)</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{ "estado": "inactivo" }</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="prod-stock">
+          <div class="endpoint-head">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/productos/:id/stock</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Ajuste manual de stock (reposición, merma, conteo físico)</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{ "cantidad": 50, "motivo": "reposicion" }</pre>
+            </div>
+            <div class="note">Distinto del descuento de stock por venta (eso lo hace el motor de ventas internamente, nunca este endpoint).</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 03 MOTOR DE VENTAS ===================== -->
+      <section class="block" id="ventas">
+        <h2><span class="num">03</span> Motor de ventas (POS)</h2>
+        <p class="intro">El endpoint central del sistema. Recibe el carrito armado en el frontend y ejecuta la transacción completa en una sola operación atómica.</p>
+
+        <div class="endpoint" id="venta-crear">
+          <div class="endpoint-head">
+            <span class="method post">POST</span>
+            <span class="path">/api/ventas</span>
+            <span class="desc">Registra una venta completa (cabecera + detalle + descuento de stock)</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{
+  "cliente_id": null,
+  "metodo_pago": "tarjeta",
+  "items": [
+    { "producto_id": 101, "cantidad": 2 },
+    { "producto_id": 87,  "cantidad": 1 }
+  ]
+}</pre>
+            </div>
+            <div class="note">
+              <strong>El precio nunca lo manda el frontend.</strong> El backend busca <code>precio_venta</code> de cada producto al momento de procesar y lo congela en <code>precio_unitario_historico</code>. Así se evita que un carrito manipulado en el cliente altere el total.
+            </div>
+            <div>
+              <p class="field-label">Qué hace el controlador, dentro de una única transacción SQL</p>
+              <pre>BEGIN;
+  1. Por cada item: SELECT precio_venta, stock FROM productos
+     WHERE id = ... FOR UPDATE;   -- bloquea la fila
+  2. Si algún stock es insuficiente → ROLLBACK, responde 409.
+  3. INSERT INTO ventas (cabecera) ... RETURNING id;
+  4. INSERT masivo en detalle_ventas con precio_unitario_historico
+     tomado en el paso 1.
+  5. UPDATE productos SET stock = stock - cantidad ...
+     (el CHECK stock >= 0 es la última red de seguridad).
+COMMIT;</pre>
+            </div>
+            <div>
+              <p class="field-label">Respuesta 201</p>
+              <pre>{
+  "id": 5820, "fecha": "2026-08-27T15:12:03Z",
+  "total": 10.50, "metodo_pago": "tarjeta",
+  "estado_documento": "emitida",
+  "items": [
+    { "producto_id": 101, "cantidad": 2, "precio_unitario_historico": 3.50, "subtotal": 7.00 },
+    { "producto_id": 87,  "cantidad": 1, "precio_unitario_historico": 3.50, "subtotal": 3.50 }
+  ]
+}</pre>
+            </div>
+            <div class="errors">
+              <div class="row"><span class="code">409</span><span class="cond">Stock insuficiente en uno o más productos — no se registra nada, rollback automático.</span></div>
+              <div class="row"><span class="code">422</span><span class="cond">Carrito vacío, cantidad ≤ 0, o producto inexistente/inactivo.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="venta-listar">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/ventas</span>
+            <span class="desc">Listado con filtros — base del dashboard</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Query params</p>
+              <pre>?desde=2026-08-01&hasta=2026-08-27
+&usuario_id=7          // un cajero solo ve las suyas
+&estado_documento=emitida
+&page=1&limit=20</pre>
+            </div>
+            <div class="note">Un usuario con rol <code>cajero</code> solo puede consultar sus propias ventas; el filtro <code>usuario_id</code> queda forzado por el backend a su propio id, sin importar lo que mande el query string.</div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="venta-detalle">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/ventas/:id</span>
+            <span class="desc">Detalle completo de una venta, con sus líneas</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="errors"><div class="row"><span class="code">404</span><span class="cond">No existe, o pertenece a otro cajero sin permiso para verla.</span></div></div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="venta-anular">
+          <div class="endpoint-head">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/ventas/:id/anular</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Anula una venta emitida y repone el stock descontado</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{ "motivo": "error de cobro" }</pre>
+            </div>
+            <div class="note">Nunca se hace <code>DELETE</code> sobre <code>ventas</code>: el registro es historial contable. Solo funciona mientras el comprobante <strong>todavía no fue aceptado</strong> por SUNAT (pendiente, en error o rechazado). Si ya fue aceptado, usa <a href="#nc-anular">PATCH /api/comprobantes/:id/anular</a> en su lugar.</div>
+            <div class="errors">
+              <div class="row"><span class="code">409</span><span class="cond">La venta ya estaba anulada.</span></div>
+              <div class="row"><span class="code">409</span><span class="cond">El comprobante ya fue aceptado por SUNAT — hay que anular con nota de crédito, no aquí.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 04 NOTAS DE CRÉDITO ===================== -->
+      <section class="block" id="notas-credito">
+        <h2><span class="num">04</span> Notas de crédito y anulación</h2>
+        <p class="intro">Único mecanismo legal para modificar o cancelar una factura/boleta que SUNAT ya aceptó — nunca se edita ni se borra un comprobante aceptado.</p>
+
+        <div class="scroll-x">
+          <table class="roles">
+            <tr><th>Código</th><th>Motivo (catálogo 09 SUNAT)</th><th>Repone stock</th></tr>
+            <tr><td><code>01</code></td><td>Anulación de la operación</td><td>Sí</td></tr>
+            <tr><td><code>02</code></td><td>Anulación por error en el RUC</td><td>No</td></tr>
+            <tr><td><code>03</code></td><td>Corrección por error en la descripción</td><td>No</td></tr>
+            <tr><td><code>04</code> / <code>05</code></td><td>Descuento global / por ítem</td><td>No</td></tr>
+            <tr><td><code>06</code></td><td>Devolución total</td><td>Sí</td></tr>
+            <tr><td><code>07</code></td><td>Devolución por ítem</td><td>Sí</td></tr>
+            <tr><td><code>08</code></td><td>Bonificación</td><td>No</td></tr>
+            <tr><td><code>09</code>–<code>12</code></td><td>Otros ajustes de valor / exportación / IVAP</td><td>No</td></tr>
+          </table>
+        </div>
+
+        <div class="endpoint" id="nc-crear">
+          <div class="endpoint-head">
+            <span class="method post">POST</span>
+            <span class="path">/api/comprobantes/:id/notas-credito</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Emite una nota de crédito (total o parcial) sobre un comprobante aceptado</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body — devolución parcial</p>
+              <pre>{
+  "codigo_motivo": "07",
+  "motivo_detalle": "Cliente devolvió 1 unidad en mal estado",
+  "items": [
+    { "producto_id": 101, "cantidad": 1 }
+  ]
+}</pre>
+            </div>
+            <div class="note"><code>items</code> es opcional: si se omite, la nota cubre <strong>todas</strong> las líneas del comprobante (equivalente a una anulación/devolución total). El backend nunca deja acreditar más unidades de las que quedan disponibles, aunque se emitan varias notas parciales sobre el mismo comprobante.</div>
+            <div>
+              <p class="field-label">Respuesta 201</p>
+              <pre>{ "id": 812, "estado": "aceptado", "codigo": "0", "descripcion": "La Nota de Crédito ha sido aceptada" }</pre>
+            </div>
+            <div class="errors">
+              <div class="row"><span class="code">409</span><span class="cond">El comprobante afectado aún no fue aceptado por SUNAT.</span></div>
+              <div class="row"><span class="code">409</span><span class="cond">Ya fue acreditado en su totalidad (por esta u otra nota anterior).</span></div>
+              <div class="row"><span class="code">422</span><span class="cond">codigo_motivo fuera del catálogo 09, o cantidad mayor al saldo disponible.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="nc-anular">
+          <div class="endpoint-head">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/comprobantes/:id/anular</span>
+            <span class="role-pill">supervisor+</span>
+            <span class="desc">Cancela por completo una factura o boleta ya aceptada</span>
+          </div>
+          <div class="endpoint-body">
+            <div>
+              <p class="field-label">Request body</p>
+              <pre>{ "motivo": "Venta duplicada por error del cajero" }</pre>
+            </div>
+            <div class="note">Atajo sobre <code>POST /notas-credito</code> con <code>codigo_motivo: "01"</code> cubriendo el 100% de las líneas. Repone todo el stock y, en la misma operación, marca la venta original como <code>anulada</code> — el equivalente a "anular esta factura" en el mostrador.</div>
+            <div>
+              <p class="field-label">Respuesta 201</p>
+              <pre>{ "notaCreditoId": 813, "ventaAnulada": true, "estado": "aceptado" }</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint" id="nc-listar">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/comprobantes/:id/notas-credito</span>
+            <span class="desc">Lista las notas de crédito emitidas sobre un comprobante</span>
+          </div>
+        </div>
+
+        <div class="endpoint" id="nc-pdf">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/comprobantes/:id/pdf</span>
+            <span class="desc">Representación impresa (boleta, factura o nota de crédito) en PDF</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="note">Es lo que se le entrega al cliente en el mostrador o se le envía por correo. Incluye el código QR que exige SUNAT para la representación impresa (RUC, tipo, serie-correlativo, IGV, total, fecha y hash). <strong>No tiene valor legal por sí solo</strong> — eso lo tiene el XML firmado + su CDR, disponibles en <code>/xml</code> y <code>/cdr</code>.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 05 DASHBOARD ===================== -->
+      <section class="block" id="dashboard">
+        <h2><span class="num">05</span> Dashboard y analítica</h2>
+        <p class="intro">Datos de gestión — todos exigen rol <code>supervisor</code> o <code>admin</code>; un cajero no puede consultarlos. Todos aceptan <code>?desde=YYYY-MM-DD&amp;hasta=YYYY-MM-DD</code> (por defecto, los últimos 30 días) excepto el resumen de hoy.</p>
+
+        <div class="endpoint" id="dash-hoy">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/dashboard/resumen-hoy</span>
+            <span class="desc">Recaudación de hoy, N° de ventas, ticket promedio y variación vs. ayer</span>
+          </div>
+          <div class="endpoint-body">
+            <pre>{
+  "recaudacion_hoy": 1284.50, "ventas_hoy": 47,
+  "ticket_promedio": 27.33, "variacion_vs_ayer_pct": 12.4
+}</pre>
+          </div>
+        </div>
+
+        <div class="endpoint" id="dash-recaudacion">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/dashboard/recaudacion-diaria</span>
+            <span class="desc">Serie de tiempo: recaudación y N° de ventas por día — para graficar</span>
+          </div>
+        </div>
+
+        <div class="endpoint" id="dash-productos">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/dashboard/productos-top</span>
+            <span class="desc">Productos de mayor rotación por unidades vendidas (<code>?limit=</code>, por defecto 10)</span>
+          </div>
+        </div>
+
+        <div class="endpoint" id="dash-vendedores">
+          <div class="endpoint-head">
+            <span class="method get">GET</span>
+            <span class="path">/api/dashboard/rendimiento-vendedores</span>
+            <span class="desc">Monto vendido, N° de ventas y ticket promedio por cajero/vendedor</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="status">
+        <h2>Códigos de estado HTTP usados en la API</h2>
+        <div class="scroll-x">
+          <table class="status">
+            <tr><th>Código</th><th>Significado en este sistema</th></tr>
+            <tr><td class="code ok">200</td><td>Consulta u operación exitosa (GET, PATCH, PUT).</td></tr>
+            <tr><td class="code ok">201</td><td>Recurso creado (usuario, producto o venta nuevos).</td></tr>
+            <tr><td class="code err">400</td><td>Body malformado (JSON inválido, falta un campo requerido).</td></tr>
+            <tr><td class="code err">401</td><td>Token ausente, expirado o inválido.</td></tr>
+            <tr><td class="code err">403</td><td>Token válido, pero el rol no tiene permiso para esta acción.</td></tr>
+            <tr><td class="code err">404</td><td>El recurso solicitado no existe.</td></tr>
+            <tr><td class="code warn">409</td><td>Conflicto de estado: stock insuficiente, código de barras duplicado, venta ya anulada.</td></tr>
+            <tr><td class="code warn">422</td><td>Datos válidos en formato pero inválidos en reglas de negocio (precio negativo, cantidad ≤ 0).</td></tr>
+            <tr><td class="code err">500</td><td>Error no controlado del servidor — se registra en logs, nunca expone detalles internos al cliente.</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <footer class="end">
+        Siguiente paso natural: montar estos endpoints sobre <a href="#">pos_schema.sql</a> con Express + un cliente de PostgreSQL (pg o Prisma), empezando por el middleware de autenticación del que dependen todos los demás.
+      </footer>
+
+    </main>
+  </div>
+</div>

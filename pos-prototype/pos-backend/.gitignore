@@ -1,0 +1,5 @@
+node_modules/
+.env
+certificados/*.pfx
+certificados/*.p12
+*.log

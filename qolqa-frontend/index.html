@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qolqa — panel funcional (Fase 1)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:#eef1f4; --surface:#fff; --surface-2:#f4f6f8; --border:#d7dee3; --border-strong:#b9c4cc;
+    --ink:#1a2530; --ink-soft:#54636f; --ink-faint:#8695a1;
+    --primary:#2c4a63; --primary-strong:#1d3446; --primary-soft:#dbe4ea; --primary-ink:#fff;
+    --info:#3f7ea6; --info-bg:#dbe9f0; --success:#2f7d5c; --success-bg:#e1f0e8;
+    --warning:#b3791f; --warning-bg:#f7ecd7; --danger:#b23b3b; --danger-bg:#f8e3e3;
+    --shadow-sm:0 1px 2px rgba(26,37,48,.07); --shadow-md:0 10px 30px rgba(26,37,48,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#11161b; --surface:#171d23; --surface-2:#1d242b; --border:#2a333b; --border-strong:#3a444d;
+      --ink:#e7edf1; --ink-soft:#a6b2bb; --ink-faint:#6c7981;
+      --primary:#6f9cb8; --primary-strong:#8bb0c8; --primary-soft:#22323f; --primary-ink:#0e1a22;
+      --info:#6fb0d1; --info-bg:#15303c; --success:#5fb98f; --success-bg:#142a20;
+      --warning:#dda256; --warning-bg:#2b2213; --danger:#dd8686; --danger-bg:#2b1a1a;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow-md:0 10px 30px rgba(0,0,0,.45); }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans","Segoe UI",sans-serif; font-size:14px; line-height:1.5; }
+  h1,h2,h3 { font-family:"Libre Franklin",sans-serif; font-weight:700; margin:0; color:var(--ink); }
+  .mono { font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+  button, input, select { font-family:inherit; font-size:13.4px; }
+  button { cursor:pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--primary); outline-offset:1px; }
+
+  /* ---- gate bar: API base config, always visible ---- */
+  .gate-bar {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 20px; background:var(--primary-strong); color:rgba(255,255,255,.82); font-size:12.2px;
+  }
+  .gate-bar b { color:#fff; font-family:"Libre Franklin",sans-serif; letter-spacing:.02em; }
+  .gate-bar input {
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:6px;
+    color:#fff; padding:5px 9px; font-family:"IBM Plex Mono",monospace; font-size:12px; width:260px;
+  }
+  .gate-bar input::placeholder { color:rgba(255,255,255,.4); }
+  .gate-bar .status { display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .gate-dot { width:7px; height:7px; border-radius:50%; background:var(--ink-faint); flex:none; }
+  .gate-dot.ok { background:#5fb98f; }
+  .gate-dot.bad { background:#dd8686; }
+
+  .auth-wrap { min-height:calc(100vh - 40px); display:flex; align-items:center; justify-content:center; padding:30px 16px; }
+  .auth-card { width:100%; max-width:400px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-md); padding:30px 28px; }
+  .auth-brand { font-family:"Libre Franklin",sans-serif; font-weight:800; font-size:19px; color:var(--primary); margin-bottom:4px; letter-spacing:.01em; }
+  .auth-sub { color:var(--ink-soft); font-size:12.8px; margin-bottom:22px; }
+  .auth-switch { text-align:center; margin-top:16px; font-size:12.8px; color:var(--ink-soft); }
+  .auth-switch button { background:none; border:none; color:var(--info); font-weight:600; padding:0; }
+  .auth-switch button:hover { text-decoration:underline; }
+
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12.2px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .field label .opt { font-weight:400; color:var(--ink-faint); }
+  .field input, .field select {
+    width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+  }
+  .field input:focus, .field select:focus { border-color:var(--primary); }
+  .field .err { font-size:11.4px; color:var(--danger); margin-top:4px; display:none; }
+  .field.invalid input { border-color:var(--danger); }
+  .field.invalid .err { display:block; }
+  .field-2col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  fieldset { border:1px solid var(--border); border-radius:10px; padding:12px 14px 4px; margin:0 0 14px; }
+  fieldset legend { font-size:11.4px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; padding:0 6px; }
+
+  .btn-primary {
+    width:100%; background:var(--primary); color:var(--primary-ink); border:none; border-radius:8px;
+    padding:10px 14px; font-size:13.4px; font-weight:700; font-family:"Libre Franklin",sans-serif;
+  }
+  .btn-primary:hover { background:var(--primary-strong); }
+  .btn-primary:disabled { opacity:.55; cursor:not-allowed; }
+  .btn-inline { background:var(--primary); color:var(--primary-ink); border:none; border-radius:8px; padding:8px 13px; font-size:12.6px; font-weight:600; font-family:"Libre Franklin",sans-serif; white-space:nowrap; }
+  .btn-inline:hover { background:var(--primary-strong); }
+  .btn-inline:disabled { opacity:.55; cursor:not-allowed; }
+  .btn-ghost { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 13px; font-size:12.6px; font-weight:600; color:var(--ink-soft); font-family:"Libre Franklin",sans-serif; }
+  .btn-ghost:hover { background:var(--surface-2); }
+  .btn-danger-ghost { background:var(--surface); border:1px solid var(--border); border-radius:7px; padding:5px 10px; font-size:11.8px; font-weight:600; color:var(--danger); }
+  .btn-danger-ghost:hover { background:var(--danger-bg); }
+
+  .alert { border-radius:9px; padding:10px 13px; font-size:12.6px; margin-bottom:16px; display:none; }
+  .alert.show { display:block; }
+  .alert.error { background:var(--danger-bg); color:var(--danger); }
+  .alert.info { background:var(--info-bg); color:var(--info); }
+  .alert.success { background:var(--success-bg); color:var(--success); }
+  .alert code { font-family:"IBM Plex Mono",monospace; opacity:.85; }
+
+  .co-pick { display:flex; flex-direction:column; gap:8px; margin:6px 0 16px; }
+  .co-pick button {
+    display:flex; flex-direction:column; align-items:flex-start; text-align:left;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:10px 13px;
+  }
+  .co-pick button:hover { border-color:var(--primary); background:var(--primary-soft); }
+  .co-pick .rz { font-weight:600; font-size:13px; }
+  .co-pick .nc { font-size:11.6px; color:var(--ink-faint); }
+
+  /* ---- app shell ---- */
+  .shell { display:flex; min-height:calc(100vh - 40px); }
+  .sidebar { width:220px; flex:none; background:var(--primary-strong); color:rgba(255,255,255,.8); display:flex; flex-direction:column; }
+  .sidebar-brand { padding:18px 18px 6px; color:#fff; font-family:"Libre Franklin",sans-serif; font-weight:800; font-size:16px; }
+  .company-pill {
+    margin:8px 14px 12px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+    border-radius:8px; padding:9px 11px;
+  }
+  .company-pill .n { font-size:12.6px; font-weight:600; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .company-pill .r { font-size:10.6px; color:rgba(255,255,255,.5); font-family:"IBM Plex Mono",monospace; margin-top:2px; }
+  .company-pill select { width:100%; margin-top:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:#fff; border-radius:6px; padding:5px 7px; font-size:11.6px; }
+  .company-pill select option { color:#111; }
+  .sb-nav { flex:1; padding:6px 10px; display:flex; flex-direction:column; gap:2px; }
+  .sb-nav button {
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none;
+    color:rgba(255,255,255,.72); padding:8px 10px; border-radius:7px; font-size:12.8px; font-weight:500;
+  }
+  .sb-nav button:hover { background:rgba(255,255,255,.06); color:#fff; }
+  .sb-nav button.active { background:var(--primary); color:#fff; }
+  .sidebar-foot { padding:12px 16px 16px; border-top:1px solid rgba(255,255,255,.1); }
+  .sidebar-foot .who { font-size:12.4px; font-weight:600; color:#fff; }
+  .sidebar-foot .mail { font-size:11px; color:rgba(255,255,255,.5); margin-bottom:8px; }
+  .sidebar-foot button { width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:#fff; border-radius:7px; padding:7px; font-size:12px; font-weight:600; }
+  .sidebar-foot button:hover { background:rgba(255,255,255,.14); }
+
+  .main { flex:1; min-width:0; padding:26px 30px 60px; overflow-y:auto; }
+  .panel { display:none; max-width:920px; }
+  .panel.active { display:block; }
+  .panel-head { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+  .panel-head h1 { font-size:19px; margin-bottom:3px; }
+  .panel-head p { margin:0; color:var(--ink-soft); font-size:13px; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:18px; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
+  .card-head h3 { font-size:14px; }
+  .card-body { padding:16px 18px; }
+  .card-body.tight { padding:0; }
+
+  table { width:100%; border-collapse:collapse; font-size:12.8px; }
+  th { text-align:left; font-size:10.6px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600; padding:9px 14px; border-bottom:1px solid var(--border); background:var(--surface-2); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background:var(--surface-2); }
+  td.num, th.num { text-align:right; }
+  .empty-row td { text-align:center; padding:30px; color:var(--ink-faint); }
+
+  .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:500; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+  .pill.success { background:var(--success-bg); color:var(--success); }
+  .pill.warning { background:var(--warning-bg); color:var(--warning); }
+  .pill.danger { background:var(--danger-bg); color:var(--danger); }
+  .pill.info { background:var(--info-bg); color:var(--info); }
+  .pill.neutral { background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--border); }
+  .pill-btn { border:none; cursor:pointer; }
+
+  .field-row { display:grid; grid-template-columns:170px 1fr; align-items:center; padding:11px 0; border-bottom:1px solid var(--border); gap:12px; }
+  .field-row:last-child { border-bottom:none; }
+  .field-row label { font-size:12.6px; color:var(--ink-soft); font-weight:500; }
+
+  .perm-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .perm-chip { display:flex; align-items:center; gap:6px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:6px 10px; font-size:12px; }
+  .perm-chip input { margin:0; }
+
+  .skeleton { color:var(--ink-faint); font-size:12.8px; padding:16px 18px; }
+  .spinner { display:inline-block; width:13px; height:13px; border:2px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin .6s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .toast-stack { position:fixed; bottom:18px; right:18px; z-index:200; display:flex; flex-direction:column-reverse; gap:8px; }
+  .toast { display:flex; align-items:flex-start; gap:9px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-md); border-radius:9px; padding:10px 13px; font-size:12.4px; max-width:320px; }
+  .toast .dot { width:8px; height:8px; border-radius:50%; margin-top:4px; flex:none; }
+  .toast.success .dot { background:var(--success); }
+  .toast.error .dot { background:var(--danger); }
+  .toast.info .dot { background:var(--info); }
+
+  code.k { font-family:"IBM Plex Mono",monospace; font-size:11.6px; background:var(--surface-2); padding:1px 5px; border-radius:4px; }
+  .hint { font-size:11.4px; color:var(--ink-faint); margin-top:4px; }
+  @media (max-width: 780px) { .shell { flex-direction:column; } .sidebar { width:100%; } .sb-nav { flex-direction:row; overflow-x:auto; } }
+</style>
+</head>
+<body>
+
+<div class="gate-bar">
+  <b>QOLQA · panel funcional</b>
+  <span>API:</span>
+  <input id="apiBaseInput" type="text" value="http://localhost:4000/api/v1" spellcheck="false">
+  <button class="btn-ghost" id="apiBaseSave" style="padding:5px 10px;font-size:11.6px">Usar esta URL</button>
+  <div class="status"><span class="gate-dot" id="apiDot"></span><span id="apiStatusTxt">sin probar</span></div>
+</div>
+
+<!-- ===================== AUTH ===================== -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-card">
+    <div id="loginScreen">
+      <div class="auth-brand">Qolqa</div>
+      <div class="auth-sub">Inicia sesión en tu cuenta. Este panel habla directo con tu backend Fase&nbsp;1 — nada aquí es simulado.</div>
+      <div class="alert error" id="loginAlert"></div>
+      <form id="loginForm" novalidate>
+        <div class="field" data-field="correo"><label>Correo</label><input name="correo" type="email" placeholder="tu@empresa.pe" autocomplete="username"><span class="err">Escribe un correo válido.</span></div>
+        <div class="field" data-field="password"><label>Contraseña</label><input name="password" type="password" placeholder="••••••••" autocomplete="current-password"><span class="err">Escribe tu contraseña.</span></div>
+        <button type="submit" class="btn-primary" id="loginBtn">Iniciar sesión</button>
+      </form>
+      <div class="auth-switch">¿No tienes cuenta? <button id="gotoRegister">Crear una empresa</button></div>
+    </div>
+
+    <div id="selectCompanyScreen" style="display:none">
+      <div class="auth-brand">Elige una empresa</div>
+      <div class="auth-sub">Tu cuenta pertenece a más de una empresa — la API no emite el token hasta que elijas.</div>
+      <div class="co-pick" id="coPickList"></div>
+      <button class="btn-ghost" id="backToLogin" style="width:100%">Volver</button>
+    </div>
+
+    <div id="registerScreen" style="display:none">
+      <div class="auth-brand">Crear cuenta</div>
+      <div class="auth-sub">Registra tu primera empresa. Se crea de forma atómica: cuenta, empresa, sucursal "Sede Principal" y tu membresía admin.</div>
+      <div class="alert error" id="registerAlert"></div>
+      <form id="registerForm" novalidate>
+        <fieldset>
+          <legend>Tu cuenta</legend>
+          <div class="field-2col">
+            <div class="field" data-field="nombres"><label>Nombres</label><input name="nombres" type="text"><span class="err">Requerido.</span></div>
+            <div class="field" data-field="apellidos"><label>Apellidos</label><input name="apellidos" type="text"><span class="err">Requerido.</span></div>
+          </div>
+          <div class="field" data-field="correo"><label>Correo</label><input name="correo" type="email"><span class="err">Correo inválido.</span></div>
+          <div class="field" data-field="password"><label>Contraseña</label><input name="password" type="password" placeholder="mínimo 8 caracteres"><span class="err">Mínimo 8 caracteres.</span></div>
+        </fieldset>
+        <fieldset>
+          <legend>Tu empresa</legend>
+          <div class="field" data-field="ruc"><label>RUC</label><input name="ruc" type="text" inputmode="numeric" maxlength="11"><span class="err">11 dígitos.</span></div>
+          <div class="field" data-field="razon_social"><label>Razón social</label><input name="razon_social" type="text"><span class="err">Requerido.</span></div>
+          <div class="field"><label>Nombre comercial <span class="opt">(opcional)</span></label><input name="nombre_comercial" type="text"></div>
+        </fieldset>
+        <button type="submit" class="btn-primary" id="registerBtn">Crear cuenta y empresa</button>
+      </form>
+      <div class="auth-switch">¿Ya tienes cuenta? <button id="gotoLogin">Inicia sesión</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div class="shell" id="appShell" style="display:none">
+  <nav class="sidebar">
+    <div class="sidebar-brand">QOLQA</div>
+    <div class="company-pill">
+      <div class="n" id="pillEmpresa">—</div>
+      <div class="r mono" id="pillRuc">—</div>
+      <select id="companySwitch"></select>
+    </div>
+    <div class="sb-nav" id="sbNav">
+      <button data-panel="resumen" class="active">Resumen</button>
+      <button data-panel="empresa">Empresa</button>
+      <button data-panel="sucursales">Sucursales</button>
+      <button data-panel="usuarios">Usuarios</button>
+      <button data-panel="roles">Roles y permisos</button>
+      <button data-panel="auditoria">Auditoría</button>
+      <button data-panel="sesiones">Sesiones</button>
+    </div>
+    <div class="sidebar-foot">
+      <div class="who" id="footWho">—</div>
+      <div class="mail" id="footMail">—</div>
+      <button id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- Resumen -->
+    <section class="panel active" id="panel-resumen">
+      <div class="panel-head"><div><h1>Resumen</h1><p>Lo que devuelve <code class="k">GET /auth/me</code> ahora mismo.</p></div><button class="btn-ghost" data-refresh="resumen">Actualizar</button></div>
+      <div class="card"><div class="card-body" id="resumenBody"><div class="skeleton">Cargando…</div></div></div>
+    </section>
+
+    <!-- Empresa -->
+    <section class="panel" id="panel-empresa">
+      <div class="panel-head"><div><h1>Empresa activa</h1><p><code class="k">GET</code> / <code class="k">PATCH /companies/activa</code></p></div><button class="btn-ghost" data-refresh="empresa">Actualizar</button></div>
+      <div class="alert success" id="empresaAlert"></div>
+      <div class="card"><div class="card-body" id="empresaBody"><div class="skeleton">Cargando…</div></div></div>
+      <div class="card">
+        <div class="card-head"><h3>Agregar otra empresa</h3></div>
+        <div class="card-body">
+          <div class="alert error" id="agregarEmpresaAlert"></div>
+          <form id="agregarEmpresaForm" novalidate>
+            <div class="field-2col">
+              <div class="field" data-field="ruc"><label>RUC</label><input name="ruc" type="text" inputmode="numeric" maxlength="11"><span class="err">11 dígitos.</span></div>
+              <div class="field" data-field="razon_social"><label>Razón social</label><input name="razon_social" type="text"><span class="err">Requerido.</span></div>
+            </div>
+            <div class="field"><label>Nombre comercial <span class="opt">(opcional)</span></label><input name="nombre_comercial" type="text"></div>
+            <button type="submit" class="btn-inline" id="agregarEmpresaBtn">Crear empresa (POST /companies)</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sucursales -->
+    <section class="panel" id="panel-sucursales">
+      <div class="panel-head"><div><h1>Sucursales</h1><p><code class="k">GET</code> / <code class="k">POST /branches</code></p></div><button class="btn-ghost" data-refresh="sucursales">Actualizar</button></div>
+      <div class="card">
+        <div class="card-head"><h3>Crear sucursal</h3></div>
+        <div class="card-body">
+          <div class="alert error" id="sucursalAlert"></div>
+          <form id="sucursalForm" novalidate>
+            <div class="field-2col">
+              <div class="field" data-field="nombre"><label>Nombre</label><input name="nombre" type="text"><span class="err">Requerido.</span></div>
+              <div class="field"><label>Ubigeo <span class="opt">(opcional)</span></label><input name="ubigeo" type="text" maxlength="6" placeholder="150101"></div>
+            </div>
+            <div class="field"><label>Dirección <span class="opt">(opcional)</span></label><input name="direccion" type="text"></div>
+            <button type="submit" class="btn-inline" id="sucursalBtn">Crear sucursal</button>
+          </form>
+        </div>
+      </div>
+      <div class="card"><div class="card-body tight"><table><thead><tr><th>Nombre</th><th>Dirección</th><th>Ubigeo</th><th>Estado</th></tr></thead><tbody id="sucursalesBody"><tr class="empty-row"><td colspan="4">Cargando…</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- Usuarios -->
+    <section class="panel" id="panel-usuarios">
+      <div class="panel-head"><div><h1>Usuarios</h1><p><code class="k">GET</code> / <code class="k">POST /users</code> · cambiar rol y estado por fila</p></div><button class="btn-ghost" data-refresh="usuarios">Actualizar</button></div>
+      <div class="card">
+        <div class="card-head"><h3>Invitar usuario</h3></div>
+        <div class="card-body">
+          <div class="alert error" id="usuarioAlert"></div>
+          <div class="alert success" id="usuarioSuccessAlert"></div>
+          <form id="usuarioForm" novalidate>
+            <div class="field" data-field="correo"><label>Correo</label><input name="correo" type="email"><span class="err">Correo inválido.</span></div>
+            <div class="field-2col">
+              <div class="field"><label>Nombres <span class="opt">(si es persona nueva)</span></label><input name="nombres" type="text"></div>
+              <div class="field"><label>Apellidos <span class="opt">(si es persona nueva)</span></label><input name="apellidos" type="text"></div>
+            </div>
+            <div class="field-2col">
+              <div class="field" data-field="role_id"><label>Rol</label><select name="role_id"></select></div>
+              <div class="field"><label>Sucursal <span class="opt">(opcional)</span></label><select name="branch_id"><option value="">— sin asignar —</option></select></div>
+            </div>
+            <div class="hint" style="margin:-6px 0 12px">Si el correo ya existe en Qolqa (otra empresa), se reutiliza esa cuenta. Si es nueva, la API genera una contraseña temporal que se muestra una sola vez aquí abajo.</div>
+            <button type="submit" class="btn-inline" id="usuarioBtn">Invitar usuario</button>
+          </form>
+        </div>
+      </div>
+      <div class="card"><div class="card-body tight"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Sucursal</th><th>Estado</th></tr></thead><tbody id="usuariosBody"><tr class="empty-row"><td colspan="5">Cargando…</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- Roles -->
+    <section class="panel" id="panel-roles">
+      <div class="panel-head"><div><h1>Roles y permisos</h1><p><code class="k">GET /roles/permisos</code> · <code class="k">GET</code>/<code class="k">POST /roles</code></p></div><button class="btn-ghost" data-refresh="roles">Actualizar</button></div>
+      <div class="card">
+        <div class="card-head"><h3>Crear rol personalizado</h3></div>
+        <div class="card-body">
+          <div class="alert error" id="rolAlert"></div>
+          <form id="rolForm" novalidate>
+            <div class="field" data-field="nombre"><label>Nombre del rol</label><input name="nombre" type="text" placeholder="Ej. supervisor-tienda"><span class="err">Requerido.</span></div>
+            <label style="display:block;font-size:12.2px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Permisos</label>
+            <div class="perm-grid" id="permGrid"></div>
+            <button type="submit" class="btn-inline" id="rolBtn">Crear rol</button>
+          </form>
+        </div>
+      </div>
+      <div class="card"><div class="card-body tight"><table><thead><tr><th>Rol</th><th>Tipo</th><th>Permisos</th></tr></thead><tbody id="rolesBody"><tr class="empty-row"><td colspan="3">Cargando…</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- Auditoría -->
+    <section class="panel" id="panel-auditoria">
+      <div class="panel-head"><div><h1>Auditoría</h1><p><code class="k">GET /audit-logs</code> — últimas 100 acciones de esta empresa</p></div><button class="btn-ghost" data-refresh="auditoria">Actualizar</button></div>
+      <div class="card"><div class="card-body tight"><table><thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Entidad</th></tr></thead><tbody id="auditoriaBody"><tr class="empty-row"><td colspan="4">Cargando…</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- Sesiones -->
+    <section class="panel" id="panel-sesiones">
+      <div class="panel-head"><div><h1>Sesiones activas</h1><p><code class="k">GET /auth/sesiones</code> — revocar cierra la sesión de verdad en el servidor</p></div><button class="btn-ghost" data-refresh="sesiones">Actualizar</button></div>
+      <div class="card"><div class="card-body tight"><table><thead><tr><th>Dispositivo</th><th>IP</th><th>Último uso</th><th></th></tr></thead><tbody id="sesionesBody"><tr class="empty-row"><td colspan="4">Cargando…</td></tr></tbody></table></div></div>
+    </section>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script>
+(function () {
+  /* ============================================================
+   * Estado + cliente HTTP contra la API real de qolqa-backend.
+   * Sin localStorage: el token vive solo en memoria (se pierde al
+   * recargar la página a propósito — este archivo se abre junto al
+   * backend en tu propia máquina, no es un servicio persistente).
+   * ============================================================ */
+  var STATE = { apiBase: 'http://localhost:4000/api/v1', token: null, usuario: null, empresaActiva: null, rol: null };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtFecha(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }); }
+    catch (e) { return iso; }
+  }
+  function toast(msg, type) {
+    var stack = document.getElementById('toastStack');
+    var el = document.createElement('div');
+    el.className = 'toast ' + (type || 'success');
+    el.innerHTML = '<span class="dot"></span><span>' + esc(msg) + '</span>';
+    stack.appendChild(el);
+    setTimeout(function () { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(function () { el.remove(); }, 220); }, 4200);
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'Content-Type': 'application/json' };
+    if (STATE.token) headers.Authorization = 'Bearer ' + STATE.token;
+    var res;
+    try {
+      res = await fetch(STATE.apiBase + path, {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+      });
+    } catch (netErr) {
+      var e = new Error('No se pudo conectar con ' + STATE.apiBase + '. ¿Está el backend corriendo (npm start dentro de qolqa-backend) y la URL es correcta? Si el backend corre en otra máquina o puerto, actualízala arriba.');
+      e.network = true;
+      throw e;
+    }
+    var data = null;
+    var text = await res.text();
+    if (text) { try { data = JSON.parse(text); } catch (parseErr) { /* respuesta sin cuerpo JSON */ } }
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.mensaje) || ('Error HTTP ' + res.status);
+      var codigo = data && data.error && data.error.codigo;
+      var err = new Error(msg);
+      err.codigo = codigo; err.status = res.status; err.payload = data;
+      throw err;
+    }
+    return data;
+  }
+
+  /* ============================================================
+   * Prueba de conexión a la API (barra superior)
+   * ============================================================ */
+  var apiDot = document.getElementById('apiDot');
+  var apiStatusTxt = document.getElementById('apiStatusTxt');
+  var apiBaseInput = document.getElementById('apiBaseInput');
+
+  async function probarApi() {
+    apiDot.className = 'gate-dot';
+    apiStatusTxt.textContent = 'probando…';
+    try {
+      var base = STATE.apiBase.replace(/\/api\/v1\/?$/, '');
+      var res = await fetch(base + '/health');
+      if (res.ok) { apiDot.className = 'gate-dot ok'; apiStatusTxt.textContent = 'conectado a ' + STATE.apiBase; }
+      else { apiDot.className = 'gate-dot bad'; apiStatusTxt.textContent = 'responde pero con error (' + res.status + ')'; }
+    } catch (e) {
+      apiDot.className = 'gate-dot bad';
+      apiStatusTxt.textContent = 'sin respuesta — ¿el backend está corriendo?';
+    }
+  }
+  document.getElementById('apiBaseSave').addEventListener('click', function () {
+    var v = apiBaseInput.value.trim().replace(/\/$/, '');
+    if (!v) return;
+    STATE.apiBase = v;
+    toast('API base actualizada.', 'info');
+    probarApi();
+  });
+  probarApi();
+
+  /* ============================================================
+   * Validación de formularios (genérica)
+   * ============================================================ */
+  function fieldError(form, name, msg) {
+    var f = form.querySelector('[data-field="' + name + '"]');
+    if (!f) return;
+    f.classList.add('invalid');
+    var err = f.querySelector('.err');
+    if (err && msg) err.textContent = msg;
+  }
+  function clearErrors(form) { form.querySelectorAll('.field.invalid').forEach(function (f) { f.classList.remove('invalid'); }); }
+  function showAlert(id, msg, type) {
+    var el = document.getElementById(id);
+    el.className = 'alert show ' + (type || 'error');
+    el.textContent = msg;
+  }
+  function hideAlert(id) { document.getElementById(id).classList.remove('show'); }
+
+  /* ============================================================
+   * LOGIN / REGISTRO / SELECCIÓN DE EMPRESA
+   * ============================================================ */
+  var loginScreen = document.getElementById('loginScreen');
+  var selectCompanyScreen = document.getElementById('selectCompanyScreen');
+  var registerScreen = document.getElementById('registerScreen');
+  var pendingLogin = null; // { correo, password } mientras se elige empresa
+
+  document.getElementById('gotoRegister').addEventListener('click', function () {
+    loginScreen.style.display = 'none'; registerScreen.style.display = 'block';
+  });
+  document.getElementById('gotoLogin').addEventListener('click', function () {
+    registerScreen.style.display = 'none'; loginScreen.style.display = 'block';
+  });
+  document.getElementById('backToLogin').addEventListener('click', function () {
+    selectCompanyScreen.style.display = 'none'; loginScreen.style.display = 'block'; pendingLogin = null;
+  });
+
+  // Deep-link desde el landing (?vista=registro) para abrir directo en el
+  // formulario de alta de empresa, en vez de la pantalla de login.
+  if (new URLSearchParams(window.location.search).get('vista') === 'registro') {
+    loginScreen.style.display = 'none'; registerScreen.style.display = 'block';
+  }
+
+  // Puente con el login premium (React, en el landing): si ya autenticó al
+  // usuario contra esta misma API, nos pasa {token, usuario, empresa} por
+  // el hash de la URL en vez de pedir la contraseña de nuevo aquí. Se lee
+  // una sola vez y se limpia el hash — el token sigue viviendo solo en
+  // memoria (STATE.token), nunca en localStorage.
+  (function bootstrapDesdeLoginPremium() {
+    var m = /(?:^|[#&])auth=([^&]+)/.exec(window.location.hash);
+    if (!m) return;
+    try {
+      var data = JSON.parse(atob(decodeURIComponent(m[1])));
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      onAuthenticated(data);
+    } catch (e) {
+      toast('El enlace de acceso no era válido. Inicia sesión de nuevo.', 'error');
+    }
+  })();
+
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('loginAlert');
+    var correo = form.correo.value.trim(), password = form.password.value;
+    var ok = true;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { fieldError(form, 'correo'); ok = false; }
+    if (!password) { fieldError(form, 'password'); ok = false; }
+    if (!ok) return;
+
+    var btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Entrando…';
+    try {
+      var data = await api('/auth/login', { method: 'POST', body: { correo: correo, password: password } });
+      if (data.requiere_seleccion_empresa) {
+        pendingLogin = { correo: correo, password: password };
+        renderCoPick(data.empresas);
+        loginScreen.style.display = 'none'; selectCompanyScreen.style.display = 'block';
+      } else {
+        onAuthenticated(data);
+      }
+    } catch (err) {
+      showAlert('loginAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally {
+      btn.disabled = false; btn.textContent = 'Iniciar sesión';
+    }
+  });
+
+  function renderCoPick(empresas) {
+    document.getElementById('coPickList').innerHTML = empresas.map(function (emp) {
+      return '<button data-id="' + esc(emp.id) + '"><span class="rz">' + esc(emp.razon_social) + '</span>' +
+        (emp.nombre_comercial ? '<span class="nc">' + esc(emp.nombre_comercial) + '</span>' : '') + '</button>';
+    }).join('');
+    document.querySelectorAll('#coPickList button').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        try {
+          var data = await api('/auth/login', { method: 'POST', body: { correo: pendingLogin.correo, password: pendingLogin.password, company_id: btn.getAttribute('data-id') } });
+          onAuthenticated(data);
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      });
+    });
+  }
+
+  document.getElementById('registerForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('registerAlert');
+    var v = {
+      nombres: form.nombres.value.trim(), apellidos: form.apellidos.value.trim(),
+      correo: form.correo.value.trim(), password: form.password.value,
+      ruc: form.ruc.value.trim(), razon_social: form.razon_social.value.trim(),
+      nombre_comercial: form.nombre_comercial.value.trim()
+    };
+    var ok = true;
+    if (!v.nombres) { fieldError(form, 'nombres'); ok = false; }
+    if (!v.apellidos) { fieldError(form, 'apellidos'); ok = false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.correo)) { fieldError(form, 'correo'); ok = false; }
+    if (v.password.length < 8) { fieldError(form, 'password'); ok = false; }
+    if (!/^\d{11}$/.test(v.ruc)) { fieldError(form, 'ruc'); ok = false; }
+    if (!v.razon_social) { fieldError(form, 'razon_social'); ok = false; }
+    if (!ok) return;
+
+    var btn = document.getElementById('registerBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Creando…';
+    try {
+      var data = await api('/auth/registrar', {
+        method: 'POST',
+        body: { nombres: v.nombres, apellidos: v.apellidos, correo: v.correo, password: v.password,
+          empresa: { ruc: v.ruc, razon_social: v.razon_social, nombre_comercial: v.nombre_comercial || undefined } }
+      });
+      onAuthenticated(data);
+      toast('Cuenta y empresa creadas.', 'success');
+    } catch (err) {
+      showAlert('registerAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally {
+      btn.disabled = false; btn.textContent = 'Crear cuenta y empresa';
+    }
+  });
+
+  function onAuthenticated(data) {
+    STATE.token = data.token;
+    STATE.usuario = data.usuario;
+    document.getElementById('authWrap').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    loadShell();
+  }
+
+  /* ============================================================
+   * SHELL: sidebar, empresa activa, switcher, logout
+   * ============================================================ */
+  var panels = ['resumen', 'empresa', 'sucursales', 'usuarios', 'roles', 'auditoria', 'sesiones'];
+  document.getElementById('sbNav').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-panel]');
+    if (!btn) return;
+    selectPanel(btn.getAttribute('data-panel'));
+  });
+  function selectPanel(name) {
+    panels.forEach(function (p) {
+      document.getElementById('panel-' + p).classList.toggle('active', p === name);
+    });
+    document.querySelectorAll('#sbNav button').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-panel') === name); });
+    loadPanel(name);
+  }
+  document.querySelectorAll('[data-refresh]').forEach(function (b) {
+    b.addEventListener('click', function () { loadPanel(b.getAttribute('data-refresh')); });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async function () {
+    try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* revocamos igual del lado del cliente */ }
+    STATE.token = null; STATE.usuario = null; STATE.empresaActiva = null; STATE.rol = null;
+    document.getElementById('appShell').style.display = 'none';
+    document.getElementById('authWrap').style.display = 'flex';
+    document.getElementById('loginForm').reset();
+    toast('Sesión cerrada.', 'info');
+  });
+
+  async function loadShell() {
+    try {
+      var me = await api('/auth/me');
+      STATE.empresaActiva = me.empresa; STATE.rol = me.rol;
+      document.getElementById('pillEmpresa').textContent = (me.empresa && me.empresa.nombre_comercial) || (me.empresa && me.empresa.razon_social) || '—';
+      document.getElementById('footWho').textContent = me.usuario.nombres + ' ' + me.usuario.apellidos + (me.rol ? ' · ' + me.rol.nombre : '');
+      document.getElementById('footMail').textContent = me.usuario.correo;
+
+      var empresas = await api('/auth/empresas');
+      document.getElementById('pillRuc').textContent = ((empresas.filter(function (x) { return x.id === me.empresa.id; })[0] || {}).ruc) || '';
+      var sel = document.getElementById('companySwitch');
+      sel.innerHTML = empresas.map(function (emp) {
+        return '<option value="' + esc(emp.id) + '"' + (emp.id === me.empresa.id ? ' selected' : '') + '>' + esc(emp.nombre_comercial || emp.razon_social) + '</option>';
+      }).join('');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    selectPanel('resumen');
+  }
+
+  document.getElementById('companySwitch').addEventListener('change', async function (e) {
+    try {
+      var data = await api('/auth/cambiar-empresa', { method: 'POST', body: { company_id: e.target.value } });
+      STATE.token = data.token;
+      toast('Cambiaste a ' + data.empresa.razon_social + '.', 'info');
+      loadShell();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
+
+  /* ============================================================
+   * Panel: Resumen
+   * ============================================================ */
+  async function loadResumen() {
+    var el = document.getElementById('resumenBody');
+    el.innerHTML = '<div class="skeleton"><span class="spinner"></span>Cargando…</div>';
+    try {
+      var me = await api('/auth/me');
+      el.innerHTML =
+        '<div class="field-row"><label>Usuario</label><div>' + esc(me.usuario.nombres) + ' ' + esc(me.usuario.apellidos) + '</div></div>' +
+        '<div class="field-row"><label>Correo</label><div class="mono">' + esc(me.usuario.correo) + '</div></div>' +
+        '<div class="field-row"><label>Empresa activa</label><div>' + esc(me.empresa ? me.empresa.razon_social : '—') + '</div></div>' +
+        '<div class="field-row"><label>Rol</label><div><span class="pill info">' + esc(me.rol ? me.rol.nombre : '—') + '</span></div></div>';
+    } catch (err) { el.innerHTML = '<div class="skeleton">' + esc(err.message) + '</div>'; }
+  }
+
+  /* ============================================================
+   * Panel: Empresa
+   * ============================================================ */
+  async function loadEmpresa() {
+    var el = document.getElementById('empresaBody');
+    el.innerHTML = '<div class="skeleton"><span class="spinner"></span>Cargando…</div>';
+    try {
+      var emp = await api('/companies/activa');
+      el.innerHTML =
+        '<form id="empresaEditForm" novalidate>' +
+        '<div class="field-row"><label>RUC</label><div class="mono">' + esc(emp.ruc) + '</div></div>' +
+        '<div class="field-row"><label>Razón social</label><input name="razon_social" value="' + esc(emp.razon_social) + '"></div>' +
+        '<div class="field-row"><label>Nombre comercial</label><input name="nombre_comercial" value="' + esc(emp.nombre_comercial || '') + '"></div>' +
+        '<div class="field-row"><label>Dirección</label><input name="direccion" value="' + esc(emp.direccion || '') + '"></div>' +
+        '<div class="field-row"><label>Teléfono</label><input name="telefono" value="' + esc(emp.telefono || '') + '"></div>' +
+        '<div class="field-row"><label>Correo</label><input name="correo" value="' + esc(emp.correo || '') + '"></div>' +
+        '<div style="padding-top:12px"><button type="submit" class="btn-inline">Guardar cambios (PATCH)</button></div>' +
+        '</form>';
+      document.getElementById('empresaEditForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideAlert('empresaAlert');
+        var f = e.target;
+        try {
+          await api('/companies/activa', { method: 'PATCH', body: {
+            razon_social: f.razon_social.value.trim() || undefined,
+            nombre_comercial: f.nombre_comercial.value.trim() || undefined,
+            direccion: f.direccion.value.trim() || undefined,
+            telefono: f.telefono.value.trim() || undefined,
+            correo: f.correo.value.trim() || undefined
+          }});
+          showAlert('empresaAlert', 'Datos de la empresa actualizados.', 'success');
+          loadShell();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    } catch (err) { el.innerHTML = '<div class="skeleton">' + esc(err.message) + '</div>'; }
+  }
+
+  document.getElementById('agregarEmpresaForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('agregarEmpresaAlert');
+    var v = { ruc: form.ruc.value.trim(), razon_social: form.razon_social.value.trim(), nombre_comercial: form.nombre_comercial.value.trim() };
+    var ok = true;
+    if (!/^\d{11}$/.test(v.ruc)) { fieldError(form, 'ruc'); ok = false; }
+    if (!v.razon_social) { fieldError(form, 'razon_social'); ok = false; }
+    if (!ok) return;
+    var btn = document.getElementById('agregarEmpresaBtn');
+    btn.disabled = true;
+    try {
+      await api('/companies', { method: 'POST', body: { ruc: v.ruc, razon_social: v.razon_social, nombre_comercial: v.nombre_comercial || undefined } });
+      toast('Empresa "' + v.razon_social + '" creada — cámbiate a ella desde el selector de la izquierda.', 'success');
+      form.reset();
+      loadShell();
+    } catch (err) {
+      showAlert('agregarEmpresaAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally { btn.disabled = false; }
+  });
+
+  /* ============================================================
+   * Panel: Sucursales
+   * ============================================================ */
+  var sucursalesCache = [];
+  async function loadSucursales() {
+    var tbody = document.getElementById('sucursalesBody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>Cargando…</td></tr>';
+    try {
+      var rows = await api('/branches');
+      sucursalesCache = rows;
+      tbody.innerHTML = rows.length ? rows.map(function (s) {
+        return '<tr><td>' + esc(s.nombre) + '</td><td>' + esc(s.direccion || '—') + '</td><td class="mono">' + esc(s.ubigeo || '—') + '</td>' +
+          '<td><button class="pill pill-btn ' + (s.activa ? 'success' : 'neutral') + '" data-toggle-branch="' + esc(s.id) + '" data-current="' + s.activa + '">' + (s.activa ? 'Activa' : 'Inactiva') + '</button></td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="4">Sin sucursales todavía.</td></tr>';
+    } catch (err) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">' + esc(err.message) + '</td></tr>'; }
+  }
+  document.getElementById('sucursalesBody').addEventListener('click', async function (e) {
+    var btn = e.target.closest('[data-toggle-branch]');
+    if (!btn) return;
+    var nuevo = btn.getAttribute('data-current') !== 'true';
+    try {
+      await api('/branches/' + btn.getAttribute('data-toggle-branch') + '/estado', { method: 'PATCH', body: { activa: nuevo } });
+      loadSucursales();
+    } catch (err) { toast(err.message, 'error'); }
+  });
+  document.getElementById('sucursalForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('sucursalAlert');
+    var v = { nombre: form.nombre.value.trim(), ubigeo: form.ubigeo.value.trim(), direccion: form.direccion.value.trim() };
+    if (!v.nombre) { fieldError(form, 'nombre'); return; }
+    var btn = document.getElementById('sucursalBtn');
+    btn.disabled = true;
+    try {
+      await api('/branches', { method: 'POST', body: { nombre: v.nombre, ubigeo: v.ubigeo || undefined, direccion: v.direccion || undefined } });
+      toast('Sucursal "' + v.nombre + '" creada.', 'success');
+      form.reset();
+      loadSucursales();
+    } catch (err) {
+      showAlert('sucursalAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally { btn.disabled = false; }
+  });
+
+  /* ============================================================
+   * Panel: Usuarios
+   * ============================================================ */
+  async function loadUsuarios() {
+    var tbody = document.getElementById('usuariosBody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5"><span class="spinner"></span>Cargando…</td></tr>';
+    try {
+      var [usuarios, roles] = await Promise.all([api('/users'), api('/roles')]);
+      var roleSel = document.querySelector('#usuarioForm select[name=role_id]');
+      roleSel.innerHTML = roles.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.nombre) + '</option>'; }).join('');
+      var branchSel = document.querySelector('#usuarioForm select[name=branch_id]');
+      branchSel.innerHTML = '<option value="">— sin asignar —</option>' + sucursalesCache.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.nombre) + '</option>'; }).join('');
+
+      tbody.innerHTML = usuarios.length ? usuarios.map(function (u) {
+        return '<tr><td>' + esc(u.nombres) + ' ' + esc(u.apellidos) + '</td><td class="mono" style="font-size:11.8px">' + esc(u.correo) + '</td>' +
+          '<td><span class="pill info">' + esc(u.rol) + '</span></td><td>' + esc(u.sucursal || '—') + '</td>' +
+          '<td><button class="pill pill-btn ' + (u.activo ? 'success' : 'neutral') + '" data-toggle-user="' + esc(u.membresia_id) + '" data-current="' + u.activo + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</button></td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="5">Sin usuarios todavía.</td></tr>';
+    } catch (err) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">' + esc(err.message) + '</td></tr>'; }
+  }
+  document.getElementById('usuariosBody').addEventListener('click', async function (e) {
+    var btn = e.target.closest('[data-toggle-user]');
+    if (!btn) return;
+    var nuevo = btn.getAttribute('data-current') !== 'true';
+    try {
+      await api('/users/' + btn.getAttribute('data-toggle-user') + '/estado', { method: 'PATCH', body: { activo: nuevo } });
+      loadUsuarios();
+    } catch (err) { toast(err.message, 'error'); }
+  });
+  document.getElementById('usuarioForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('usuarioAlert'); hideAlert('usuarioSuccessAlert');
+    var v = { correo: form.correo.value.trim(), nombres: form.nombres.value.trim(), apellidos: form.apellidos.value.trim(), role_id: form.role_id.value, branch_id: form.branch_id.value };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.correo)) { fieldError(form, 'correo'); return; }
+    var btn = document.getElementById('usuarioBtn');
+    btn.disabled = true;
+    try {
+      var res = await api('/users', { method: 'POST', body: {
+        correo: v.correo, nombres: v.nombres || undefined, apellidos: v.apellidos || undefined,
+        role_id: v.role_id, branch_id: v.branch_id || undefined
+      }});
+      if (res.password_temporal) {
+        showAlert('usuarioSuccessAlert', 'Invitado. Contraseña temporal (cópiala ahora, no se vuelve a mostrar): ' + res.password_temporal, 'success');
+      } else {
+        showAlert('usuarioSuccessAlert', 'Invitado — esa persona ya tenía cuenta en Qolqa, solo se sumó a esta empresa.', 'success');
+      }
+      form.reset();
+      loadUsuarios();
+    } catch (err) {
+      showAlert('usuarioAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally { btn.disabled = false; }
+  });
+
+  /* ============================================================
+   * Panel: Roles
+   * ============================================================ */
+  async function loadRoles() {
+    var tbody = document.getElementById('rolesBody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="3"><span class="spinner"></span>Cargando…</td></tr>';
+    try {
+      var [permisos, roles] = await Promise.all([api('/roles/permisos'), api('/roles')]);
+      document.getElementById('permGrid').innerHTML = permisos.map(function (p) {
+        return '<label class="perm-chip"><input type="checkbox" value="' + esc(p.clave) + '"><span>' + esc(p.clave) + '</span></label>';
+      }).join('') || '<span class="hint">Aún no hay permisos en el catálogo.</span>';
+
+      tbody.innerHTML = roles.length ? roles.map(function (r) {
+        return '<tr><td>' + esc(r.nombre) + '</td><td><span class="pill ' + (r.es_personalizado ? 'info' : 'neutral') + '">' + (r.es_personalizado ? 'Personalizado' : 'Plantilla') + '</span></td>' +
+          '<td>' + (r.permisos.length ? r.permisos.map(function (p) { return '<code class="k">' + esc(p) + '</code>'; }).join(' ') : '<span class="hint">sin permisos</span>') + '</td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="3">Sin roles.</td></tr>';
+    } catch (err) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + esc(err.message) + '</td></tr>'; }
+  }
+  document.getElementById('rolForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var form = e.target;
+    clearErrors(form); hideAlert('rolAlert');
+    var nombre = form.nombre.value.trim();
+    if (!nombre) { fieldError(form, 'nombre'); return; }
+    var permisos = Array.prototype.slice.call(document.querySelectorAll('#permGrid input:checked')).map(function (c) { return c.value; });
+    var btn = document.getElementById('rolBtn');
+    btn.disabled = true;
+    try {
+      await api('/roles', { method: 'POST', body: { nombre: nombre, permisos: permisos } });
+      toast('Rol "' + nombre + '" creado con ' + permisos.length + ' permiso(s).', 'success');
+      form.reset();
+      loadRoles();
+    } catch (err) {
+      showAlert('rolAlert', err.message + (err.codigo ? ' (' + err.codigo + ')' : ''));
+    } finally { btn.disabled = false; }
+  });
+
+  /* ============================================================
+   * Panel: Auditoría
+   * ============================================================ */
+  async function loadAuditoria() {
+    var tbody = document.getElementById('auditoriaBody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>Cargando…</td></tr>';
+    try {
+      var rows = await api('/audit-logs?limite=100');
+      tbody.innerHTML = rows.length ? rows.map(function (a) {
+        return '<tr><td>' + fmtFecha(a.creado_en) + '</td><td>' + (a.nombres ? esc(a.nombres + ' ' + a.apellidos) : '<span class="hint">sistema</span>') + '</td>' +
+          '<td><code class="k">' + esc(a.accion) + '</code></td><td>' + esc(a.entidad) + '</td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="4">Sin actividad todavía.</td></tr>';
+    } catch (err) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">' + esc(err.message) + '</td></tr>'; }
+  }
+
+  /* ============================================================
+   * Panel: Sesiones
+   * ============================================================ */
+  async function loadSesiones() {
+    var tbody = document.getElementById('sesionesBody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>Cargando…</td></tr>';
+    try {
+      var rows = await api('/auth/sesiones');
+      tbody.innerHTML = rows.length ? rows.map(function (s) {
+        return '<tr><td>' + esc(s.dispositivo || 'desconocido') + (s.es_esta_sesion ? ' <span class="pill info">esta sesión</span>' : '') + '</td>' +
+          '<td class="mono">' + esc(s.ip || '—') + '</td><td>' + fmtFecha(s.ultimo_uso_en) + '</td>' +
+          '<td>' + (s.es_esta_sesion ? '' : '<button class="btn-danger-ghost" data-revoke="' + esc(s.id) + '">Revocar</button>') + '</td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="4">Sin sesiones.</td></tr>';
+    } catch (err) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">' + esc(err.message) + '</td></tr>'; }
+  }
+  document.getElementById('sesionesBody').addEventListener('click', async function (e) {
+    var btn = e.target.closest('[data-revoke]');
+    if (!btn) return;
+    try {
+      await api('/auth/sesiones/' + btn.getAttribute('data-revoke'), { method: 'DELETE' });
+      toast('Sesión revocada.', 'info');
+      loadSesiones();
+    } catch (err) { toast(err.message, 'error'); }
+  });
+
+  function loadPanel(name) {
+    if (name === 'resumen') loadResumen();
+    else if (name === 'empresa') loadEmpresa();
+    else if (name === 'sucursales') loadSucursales();
+    else if (name === 'usuarios') loadUsuarios();
+    else if (name === 'roles') loadRoles();
+    else if (name === 'auditoria') loadAuditoria();
+    else if (name === 'sesiones') loadSesiones();
+  }
+})();
+</script>
+</body>
+</html>

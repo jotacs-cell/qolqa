@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo</title>
+<link rel="icon" href="/favicon-32.png">
+<style>
+  :root {
+    --ink: #1a2530;
+    --ink-soft: #54636f;
+    --ink-faint: #94a3b3;
+    --line: #e4e9ee;
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --accent: #1d6f42;
+    --accent-dark: #145433;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 16px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  header p {
+    margin: 4px 0 0;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+  }
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+  .search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .search input {
+    flex: 1;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 14.5px;
+    background: var(--card);
+  }
+  .search input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card .img {
+    aspect-ratio: 1 / 1;
+    background: #eef1f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .card .img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card .img svg {
+    width: 36px;
+    height: 36px;
+    color: var(--ink-faint);
+  }
+  .card .body {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .card .name {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .card .desc {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card .price {
+    margin-top: auto;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .card .stock-out {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--danger);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .card .btn-wa {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .card .btn-wa:hover { background: var(--accent-dark); }
+  .card .btn-wa svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+  .state h2 {
+    color: var(--ink);
+    font-size: 18px;
+    margin: 0 0 6px;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #eef1f4 25%, #e4e9ee 37%, #eef1f4 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+  }
+  footer {
+    text-align: center;
+    padding: 24px 16px 40px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="empresaNombre">Catálogo</h1>
+    <p id="empresaSub">Cargando…</p>
+  </header>
+  <div class="wrap">
+    <div class="search" id="searchBox" style="display:none">
+      <input type="text" id="buscar" placeholder="Buscar producto…">
+    </div>
+    <div id="contenido">
+      <div class="grid" id="skeletonGrid"></div>
+    </div>
+  </div>
+  <footer>Catálogo generado con FacturaPOS</footer>
+
+<script>
+  var POS_API = 'https://pos-backend-production-bc25.up.railway.app/api';
+  var params = new URLSearchParams(window.location.search);
+  var slug = params.get('e') || '';
+  var PRODUCTOS = [];
+  var WHATSAPP = '';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function money(n) {
+    return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function iconPack() {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l1.5-3h15L21 7M3 7h18M3 7v12a1 1 0 001 1h16a1 1 0 001-1V7M9 11a3 3 0 006 0"/></svg>';
+  }
+  function iconWhatsApp() {
+    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5C11.6 9.2 11.1 8 11 7.7c-.1-.3-.3-.3-.5-.3h-.4c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.1 0 1.2.9 2.4 1 2.6.1.2 1.8 2.8 4.4 3.8.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.4c1.4.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.3c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3C4 15 3.5 13.5 3.5 12 3.5 7.3 7.3 3.5 12 3.5S20.5 7.3 20.5 12 16.7 20.3 12 20.3z"/></svg>';
+  }
+
+  function skeleton() {
+    var html = '';
+    for (var i = 0; i < 6; i++) {
+      html += '<div class="card"><div class="img skeleton"></div><div class="body">' +
+        '<div class="skeleton" style="height:14px;border-radius:4px;width:80%"></div>' +
+        '<div class="skeleton" style="height:12px;border-radius:4px;width:60%"></div>' +
+        '<div class="skeleton" style="height:20px;border-radius:4px;width:40%;margin-top:8px"></div>' +
+        '</div></div>';
+    }
+    document.getElementById('skeletonGrid').innerHTML = html;
+  }
+
+  function estado(mensaje, detalle) {
+    document.getElementById('contenido').innerHTML =
+      '<div class="state"><h2>' + esc(mensaje) + '</h2><p>' + esc(detalle || '') + '</p></div>';
+  }
+
+  function render(lista) {
+    if (!lista.length) {
+      estado('Todavía no hay productos publicados', 'Vuelve a revisar más tarde.');
+      return;
+    }
+    var html = '<div class="grid">' + lista.map(function (p) {
+      var agotado = Number(p.stock_disponible) <= 0;
+      var img = p.imagen_url
+        ? '<img src="' + esc(p.imagen_url) + '" alt="' + esc(p.nombre) + '" loading="lazy">'
+        : iconPack();
+      var mensajeWa = 'Hola, quiero pedir: ' + p.nombre + (agotado ? '' : '');
+      var wa = WHATSAPP
+        ? '<a class="btn-wa" href="https://wa.me/' + esc(WHATSAPP) + '?text=' + encodeURIComponent(mensajeWa) +
+          '" target="_blank" rel="noopener noreferrer">' + iconWhatsApp() + 'Pedir por WhatsApp</a>'
+        : '';
+      return '<div class="card">' +
+        '<div class="img">' + img + '</div>' +
+        '<div class="body">' +
+        '<div class="name">' + esc(p.nombre) + '</div>' +
+        (p.descripcion ? '<div class="desc">' + esc(p.descripcion) + '</div>' : '') +
+        '<div class="price">' + money(p.precio_venta) + '</div>' +
+        (agotado ? '<div class="stock-out">Agotado</div>' : wa) +
+        '</div></div>';
+    }).join('') + '</div>';
+    document.getElementById('contenido').innerHTML = html;
+  }
+
+  function filtrar(texto) {
+    texto = texto.trim().toLowerCase();
+    if (!texto) return render(PRODUCTOS);
+    render(PRODUCTOS.filter(function (p) {
+      return p.nombre.toLowerCase().indexOf(texto) !== -1;
+    }));
+  }
+
+  async function cargar() {
+    if (!slug) {
+      estado('Catálogo no especificado', 'Falta el enlace de la tienda en la dirección.');
+      return;
+    }
+    skeleton();
+    try {
+      var res = await fetch(POS_API + '/catalogo/' + encodeURIComponent(slug));
+      if (res.status === 404) {
+        estado('Este catálogo no existe', 'Puede que el negocio todavía no lo haya activado.');
+        return;
+      }
+      if (!res.ok) throw new Error('error');
+      var data = await res.json();
+      document.getElementById('empresaNombre').textContent = data.empresa.nombre;
+      document.getElementById('empresaSub').textContent = 'Catálogo de productos';
+      WHATSAPP = data.empresa.whatsapp || '';
+      PRODUCTOS = data.productos || [];
+      if (PRODUCTOS.length > 8) document.getElementById('searchBox').style.display = 'flex';
+      render(PRODUCTOS);
+    } catch (err) {
+      estado('No se pudo cargar el catálogo', 'Intenta de nuevo en un momento.');
+    }
+  }
+
+  document.getElementById('buscar').addEventListener('input', function (e) {
+    filtrar(e.target.value);
+  });
+
+  cargar();
+</script>
+</body>
+</html>

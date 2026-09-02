@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "apex-landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "qolqa-landing"],
+      "port": 5173
+    },
+    {
+      "name": "qolqa-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "qolqa-backend"],
+      "port": 4000
+    },
+    {
+      "name": "pos-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "pos-prototype/pos-backend"],
+      "port": 3000
+    }
+  ]
+}

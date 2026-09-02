@@ -1,0 +1,1029 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<title>Arquitectura Qolqa ERP</title>
+
+<style>
+  :root {
+    --bg: #f4f5f1;
+    --surface: #ffffff;
+    --surface-2: #eaece5;
+    --border: #d8dbd0;
+    --border-strong: #b7bbac;
+    --ink: #1d2420;
+    --ink-soft: #57604f;
+    --ink-faint: #8b937f;
+    --accent: #9a5a24;
+    --accent-strong: #7a4419;
+    --accent-soft: #f1e2cc;
+    --accent-ink: #ffffff;
+    --info: #2f6f7a;
+    --info-bg: #dfeced;
+    --success: #3a7d4f;
+    --success-bg: #e2f0e6;
+    --warning: #b3791f;
+    --warning-bg: #f7ecd6;
+    --danger: #b23b3b;
+    --danger-bg: #f8e3e3;
+    --shadow-sm: 0 1px 2px rgba(29, 36, 32, 0.06);
+    --shadow-md: 0 6px 20px rgba(29, 36, 32, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14170f;
+      --surface: #1a1e19;
+      --surface-2: #21261e;
+      --border: #2d3327;
+      --border-strong: #3d4536;
+      --ink: #e9ece2;
+      --ink-soft: #aab29e;
+      --ink-faint: #71786a;
+      --accent: #d99a54;
+      --accent-strong: #e8b378;
+      --accent-soft: #362615;
+      --accent-ink: #201203;
+      --info: #74b6c0;
+      --info-bg: #16302f;
+      --success: #71bd8d;
+      --success-bg: #163021;
+      --warning: #dda256;
+      --warning-bg: #2c2210;
+      --danger: #dd8686;
+      --danger-bg: #2c1919;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14170f;
+    --surface: #1a1e19;
+    --surface-2: #21261e;
+    --border: #2d3327;
+    --border-strong: #3d4536;
+    --ink: #e9ece2;
+    --ink-soft: #aab29e;
+    --ink-faint: #71786a;
+    --accent: #d99a54;
+    --accent-strong: #e8b378;
+    --accent-soft: #362615;
+    --accent-ink: #201203;
+    --info: #74b6c0;
+    --info-bg: #16302f;
+    --success: #71bd8d;
+    --success-bg: #163021;
+    --warning: #dda256;
+    --warning-bg: #2c2210;
+    --danger: #dd8686;
+    --danger-bg: #2c1919;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  a { color: var(--accent-strong); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) a { color: var(--accent); } }
+  :root[data-theme="dark"] a { color: var(--accent); }
+
+  h1, h2, h3, h4 {
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-weight: 800;
+    color: var(--ink);
+    text-wrap: balance;
+    line-height: 1.25;
+  }
+
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  .shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 272px;
+    flex: none;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 22px 18px 40px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .brand-mark {
+    font-family: "Manrope", sans-serif;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+  }
+  .brand-mark span { color: var(--accent-strong); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand-mark span { color: var(--accent); } }
+  :root[data-theme="dark"] .brand-mark span { color: var(--accent); }
+
+  .brand-tag {
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 22px;
+  }
+
+  .toc-group { margin-bottom: 4px; }
+  .toc-group-title {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin: 18px 0 6px;
+    padding: 0 10px;
+  }
+  .toc a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+  .toc a:hover { background: var(--surface-2); color: var(--ink); }
+  .toc a.active { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .toc a.active { color: var(--accent); } }
+  :root[data-theme="dark"] .toc a.active { color: var(--accent); }
+  .toc a .num { font-family: "IBM Plex Mono", monospace; color: var(--ink-faint); margin-right: 7px; font-size: 12px; }
+
+  .sidebar-toggle { display: none; }
+
+  /* ---------- Main ---------- */
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 48px clamp(20px, 5vw, 72px) 100px;
+  }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  header.doc-head { margin-bottom: 44px; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    padding: 5px 11px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .eyebrow { color: var(--accent); } }
+  :root[data-theme="dark"] .eyebrow { color: var(--accent); }
+
+  h1.doc-title { font-size: clamp(28px, 4vw, 38px); margin: 0 0 14px; }
+  .doc-sub { color: var(--ink-soft); font-size: 16.5px; max-width: 62ch; margin: 0; }
+
+  section { margin: 56px 0; scroll-margin-top: 24px; }
+  section h2 {
+    font-size: 22px;
+    margin: 0 0 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  section h2 .n { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 14px; color: var(--ink-faint); }
+  section h3 { font-size: 16px; margin: 28px 0 10px; }
+  section > p.section-lede { color: var(--ink-soft); margin: 12px 0 20px; max-width: 68ch; }
+
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 14.5px;
+  }
+  .callout.risk { border-left-color: var(--danger); }
+  .callout.risk .callout-label { color: var(--danger); }
+  .callout.info { border-left-color: var(--info); }
+  .callout.info .callout-label { color: var(--info); }
+  .callout-label {
+    display: block;
+    font-family: "Manrope", sans-serif;
+    font-weight: 700;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+    margin-bottom: 6px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .callout .callout-label { color: var(--accent); } }
+  :root[data-theme="dark"] .callout .callout-label { color: var(--accent); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.8px; min-width: 560px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    background: var(--surface-2);
+    font-family: "Manrope", sans-serif;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.mono, th.mono { font-family: "IBM Plex Mono", monospace; font-size: 12.6px; }
+  td .field-note { color: var(--ink-faint); font-size: 12.6px; }
+
+  /* pills */
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    border: 1px solid var(--border);
+  }
+  .pill.on { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .pill.later { background: var(--surface-2); color: var(--ink-faint); border-color: transparent; }
+
+  /* code block */
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12.8px;
+    line-height: 1.65;
+  }
+  pre code { font-family: "IBM Plex Mono", monospace; color: var(--ink); }
+  .cmt { color: var(--ink-faint); }
+  .kw { color: var(--accent-strong); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .kw { color: var(--accent); } }
+  :root[data-theme="dark"] .kw { color: var(--accent); }
+
+  /* tree */
+  .tree { font-family: "IBM Plex Mono", monospace; font-size: 12.6px; line-height: 1.75; white-space: pre; }
+
+  /* figures */
+  figure { margin: 20px 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figure .fig-frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  figcaption { font-size: 13px; color: var(--ink-faint); margin-top: 10px; text-align: center; }
+
+  .diagram-text { font-family: "IBM Plex Sans", sans-serif; }
+  .diagram-mono { font-family: "IBM Plex Mono", monospace; }
+
+  /* roadmap phase chip row */
+  .phase-row { display: flex; align-items: center; gap: 6px; }
+  .phase-badge {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    padding: 2px 7px;
+    border-radius: 5px;
+    flex: none;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .phase-badge { color: var(--accent); } }
+  :root[data-theme="dark"] .phase-badge { color: var(--accent); }
+
+  footer.doc-foot {
+    margin-top: 70px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 40;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+      box-shadow: var(--shadow-md);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-scrim {
+      display: none;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 39;
+    }
+    .sidebar-scrim.show { display: block; }
+    .sidebar-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      position: sticky;
+      top: 14px;
+      z-index: 10;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: "Manrope", sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--ink);
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    main { padding-top: 20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar { transition: none; }
+  }
+</style>
+
+<div class="shell">
+  <div class="sidebar-scrim" id="scrim"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-mark">Qolqa<span>ERP</span></span></div>
+    <p class="brand-tag">Propuesta de arquitectura</p>
+    <div class="toc" id="toc">
+      <div class="toc-group">
+        <a href="#enfoque"><span class="num">01</span>Enfoque y nombre</a>
+        <a href="#stack"><span class="num">02</span>Stack tecnológico</a>
+        <a href="#arquitectura"><span class="num">03</span>Arquitectura general</a>
+        <a href="#multitenant"><span class="num">04</span>Multi-tenant</a>
+      </div>
+      <div class="toc-group">
+        <a href="#basedatos"><span class="num">05</span>Base de datos</a>
+        <a href="#carpetas"><span class="num">06</span>Estructura de carpetas</a>
+        <a href="#modulos"><span class="num">07</span>Módulos</a>
+        <a href="#roles"><span class="num">08</span>Roles y permisos</a>
+      </div>
+      <div class="toc-group">
+        <a href="#planes"><span class="num">09</span>Planes y suscripción</a>
+        <a href="#onboarding"><span class="num">10</span>Registro de empresa</a>
+        <a href="#emision"><span class="num">11</span>Emisión de comprobante</a>
+      </div>
+      <div class="toc-group">
+        <a href="#riesgos"><span class="num">12</span>Riesgos legales/técnicos</a>
+        <a href="#configurable"><span class="num">13</span>Qué es configurable</a>
+        <a href="#roadmap"><span class="num">14</span>Roadmap</a>
+        <a href="#siguiente"><span class="num">15</span>Próximo paso</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-expanded="false" aria-controls="sidebar">☰ Índice</button>
+    <div class="content">
+
+      <header class="doc-head">
+        <span class="eyebrow">Fase de arquitectura — pendiente de tu confirmación</span>
+        <h1 class="doc-title">ERP SaaS multiempresa para Perú: propuesta de arquitectura</h1>
+        <p class="doc-sub">Respuesta al encargo del punto 43: análisis, stack, arquitectura multi-tenant, modelo de datos inicial, roles, planes, flujos de registro y emisión, riesgos y roadmap — antes de escribir una sola línea de la Fase 1.</p>
+      </header>
+
+      <section id="enfoque">
+        <h2><span class="n">01</span>Enfoque y nombre provisional</h2>
+        <p class="section-lede">Un nombre de trabajo, para no seguir escribiendo "[NOMBRE DEL SISTEMA]" en cada documento — cámbialo cuando quieras, es un placeholder hasta que verifiques disponibilidad de marca y dominio.</p>
+
+        <div class="card">
+          <p style="margin-bottom:10px"><strong class="mono" style="font-size:17px">Qolqa ERP</strong> — <span class="mono">qolqa</span>, del quechua, nombraba el depósito donde el imperio inca almacenaba y ordenaba sus recursos: el sistema hace lo mismo con la información de un negocio. Es corto, no colisiona con marcas de facturación existentes, y funciona bien como <span class="mono">qolqa.pe</span>.</p>
+          <p style="margin-bottom:0">Alternativas si prefieres otro registro: <strong>Yachay</strong> (quechua, "conocimiento") o <strong>Illari</strong> (quechua, "amanecer"). Cualquiera de los tres es un placeholder de trabajo — antes de invertir en marca, verifica en INDECOPI que el nombre elegido esté libre.</p>
+        </div>
+
+        <h3>Cómo leo el encargo</h3>
+        <p>Es una plataforma con dos productos entrelazados pero distintos: un <strong>negocio SaaS</strong> (planes, suscripciones, cobro recurrente, panel de super admin) que empaqueta un <strong>ERP</strong> (ventas, compras, inventario, finanzas) cuyo primer módulo funcional es <strong>facturación electrónica SUNAT</strong>. Ya construimos y probamos el motor de facturación electrónica (ventas, comprobantes, NubeFacT, PDF con estado SUNAT, roles y auditoría) para un negocio de una sola empresa en este mismo proyecto — es la base real de la Fase 3 de este roadmap, no un punto de partida en cero: hay que generalizarlo a multiempresa (agregar <span class="mono">company_id</span>, credenciales por empresa) más que reescribirlo.</p>
+
+        <div class="callout info">
+          <span class="callout-label">Cómo se trabajará de aquí en adelante</span>
+          <p>Este documento cubre los 15 puntos del encargo y no toca código todavía. Al final (punto 15) te pido confirmación explícita antes de empezar la Fase 1, tal como pediste.</p>
+        </div>
+      </section>
+
+      <section id="stack">
+        <h2><span class="n">02</span>Stack tecnológico</h2>
+        <p class="section-lede">Un stack que favorezca lo que más importa aquí: aislamiento de datos verificable, cálculos monetarios correctos, y procesos pesados (SUNAT, PDF, correo) que nunca bloqueen la API.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Capa</th><th>Elección</th><th>Por qué</th></tr></thead>
+            <tbody>
+              <tr><td>Backend</td><td class="mono">Node.js 22 + TypeScript + NestJS</td><td>Módulos con inyección de dependencias que fuerzan separar controller → service → repository (requisito 35); guards/interceptors encajan naturalmente con RBAC y con el middleware de tenant.</td></tr>
+              <tr><td>ORM</td><td class="mono">Prisma</td><td>Migraciones versionadas y tipado end-to-end; se complementa con SQL crudo para las políticas de Row-Level Security, que Prisma no genera por sí solo.</td></tr>
+              <tr><td>Base de datos</td><td class="mono">PostgreSQL 16</td><td><span class="mono">NUMERIC</span> para dinero (nunca float), JSONB para atributos variables (variantes de producto, límites de plan), y Row-Level Security como segunda capa de aislamiento entre empresas.</td></tr>
+              <tr><td>Cache / colas</td><td class="mono">Redis + BullMQ</td><td>Generación de XML/PDF, envío a SUNAT/OSE, correos y recordatorios de vencimiento corren en workers separados — la API nunca espera a un tercero para responder.</td></tr>
+              <tr><td>Almacenamiento de archivos</td><td class="mono">S3 compatible (AWS S3 / R2 / MinIO)</td><td>PDFs, XMLs, CDRs y logos fuera de la base de datos; MinIO permite desarrollo local idéntico a producción.</td></tr>
+              <tr><td>Frontend</td><td class="mono">React 18 + TypeScript + Vite</td><td>TanStack Query para estado de servidor (cachea, revalida, reintenta), Zustand para estado de UI, React Hook Form + Zod para formularios — el mismo esquema Zod valida en frontend y backend.</td></tr>
+              <tr><td>UI</td><td class="mono">Tailwind + Radix UI</td><td>Componentes accesibles (foco de teclado, roles ARIA) de fábrica para modales, menús y tabs — no reinventar eso en un ERP con decenas de formularios.</td></tr>
+              <tr><td>Autenticación</td><td class="mono">JWT + tabla de sesiones</td><td>Mismo patrón ya construido y probado: <span class="mono">jti</span> revocable en base de datos, porque un JWT solo no se puede invalidar antes de expirar.</td></tr>
+              <tr><td>API</td><td class="mono">REST versionado <span class="mono">/api/v1</span> + OpenAPI</td><td>Swagger autogenerado desde los decoradores de NestJS — documentación que no se desincroniza del código.</td></tr>
+              <tr><td>Pagos de suscripción</td><td class="mono">Culqi o Stripe, tras interfaz propia</td><td>Culqi es local (tarjetas peruanas, Yape); nunca se tocan datos de tarjeta — solo tokens. Interfaz <span class="mono">PaymentProvider</span> desacoplada, igual que la de facturación electrónica.</td></tr>
+              <tr><td>Observabilidad</td><td class="mono">pino (logs) + Sentry-compatible</td><td>Errores técnicos van a logs; el usuario nunca ve un stack trace (requisito 36).</td></tr>
+              <tr><td>Testing</td><td class="mono">Jest + Supertest / Vitest</td><td>Incluye una suite dedicada a intentar leer/escribir datos de otro tenant y esperar que falle — es la prueba más importante de toda la plataforma.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="arquitectura">
+        <h2><span class="n">03</span>Arquitectura general</h2>
+        <p class="section-lede">Dos caminos desde la API: el síncrono, que responde en el momento (CRUD, consultas), y el asíncrono por colas, para todo lo que depende de un tercero o toma tiempo.</p>
+
+        <figure>
+          <div class="fig-frame">
+            <svg viewBox="0 0 860 400" role="img" aria-label="Diagrama: el navegador llama a la API NestJS, que lee y escribe en PostgreSQL de forma síncrona, y encola trabajos pesados (facturación electrónica, PDF, correo, recordatorios de suscripción) que procesan workers BullMQ aparte, los cuales llaman a SUNAT/OSE, generan archivos en S3 y notifican de vuelta.">
+              <defs>
+                <marker id="qarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g class="diagram-text" fill="none" stroke="currentColor" stroke-width="1.4" font-size="12.5">
+                <!-- Client -->
+                <rect x="24" y="24" width="150" height="56" rx="8"/>
+                <text x="99" y="47" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">React SPA</text>
+                <text x="99" y="64" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" class="diagram-mono">apps/web</text>
+
+                <!-- API -->
+                <rect x="24" y="150" width="150" height="64" rx="8"/>
+                <text x="99" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">API NestJS</text>
+                <text x="99" y="193" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" class="diagram-mono">/api/v1</text>
+                <text x="99" y="207" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">guards · tenant ctx</text>
+
+                <!-- Postgres -->
+                <rect x="24" y="290" width="150" height="64" rx="8"/>
+                <text x="99" y="316" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">PostgreSQL</text>
+                <text x="99" y="333" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">tenant_id + RLS</text>
+
+                <!-- Redis / BullMQ -->
+                <rect x="255" y="150" width="150" height="64" rx="8"/>
+                <text x="330" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Redis</text>
+                <text x="330" y="193" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" class="diagram-mono">colas BullMQ</text>
+                <text x="330" y="207" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">+ cache de sesión</text>
+
+                <!-- Workers -->
+                <rect x="486" y="150" width="160" height="64" rx="8"/>
+                <text x="566" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Workers</text>
+                <text x="566" y="193" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">facturación · PDF</text>
+                <text x="566" y="207" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">correo · recordatorios</text>
+
+                <!-- External -->
+                <rect x="486" y="24" width="160" height="64" rx="8" stroke-dasharray="3 3"/>
+                <text x="566" y="50" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">SUNAT / OSE</text>
+                <text x="566" y="67" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">proveedor externo</text>
+
+                <rect x="486" y="290" width="160" height="64" rx="8"/>
+                <text x="566" y="316" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">S3 / R2</text>
+                <text x="566" y="333" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">PDF · XML · CDR</text>
+
+                <!-- Super admin -->
+                <rect x="716" y="24" width="120" height="56" rx="8"/>
+                <text x="776" y="47" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="11.5">Super Admin</text>
+                <text x="776" y="64" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">panel aparte</text>
+
+                <!-- arrows -->
+                <line x1="99" y1="80" x2="99" y2="148" marker-end="url(#qarrow)"/>
+                <text x="106" y="118" fill="currentColor" stroke="none" font-size="10.5">REST</text>
+
+                <line x1="99" y1="214" x2="99" y2="288" marker-end="url(#qarrow)"/>
+                <text x="106" y="255" fill="currentColor" stroke="none" font-size="10.5">Prisma</text>
+
+                <line x1="174" y1="182" x2="253" y2="182" marker-end="url(#qarrow)"/>
+                <text x="212" y="175" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">encola</text>
+
+                <line x1="405" y1="182" x2="484" y2="182" marker-end="url(#qarrow)"/>
+                <text x="444" y="175" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">consume</text>
+
+                <line x1="566" y1="148" x2="566" y2="90" marker-end="url(#qarrow)"/>
+                <line x1="566" y1="214" x2="566" y2="288" marker-end="url(#qarrow)"/>
+
+                <line x1="646" y1="182" x2="714" y2="60" marker-end="url(#qarrow)" stroke-dasharray="3 3"/>
+                <text x="700" y="130" fill="currentColor" stroke="none" font-size="10">bypass RLS auditado</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>La API responde de forma síncrona sobre PostgreSQL; todo lo que depende de un tercero (SUNAT/OSE, correo, PDF) se encola y lo procesan workers aparte, para que un OSE lento nunca bloquee el checkout de una venta.</figcaption>
+        </figure>
+      </section>
+
+      <section id="multitenant">
+        <h2><span class="n">04</span>Arquitectura multi-tenant</h2>
+        <p class="section-lede">La condición no negociable del encargo: "no permitir bajo ninguna circunstancia que un usuario pueda consultar, modificar o eliminar información de otro tenant." Eso no se logra con una sola capa — se logra con varias, cada una asumiendo que la anterior puede fallar.</p>
+
+        <h3>Estrategia elegida: base compartida + <span class="mono">company_id</span> + Row-Level Security</h3>
+        <p>Con la meta de escalar de 100 a 100,000 empresas (punto 34), una base de datos por empresa es inviable operativamente (migraciones, backups y conexiones se multiplican por cada tenant). Se usa una única base compartida, con cada tabla de negocio llevando <span class="mono">company_id</span>, reforzada con políticas de PostgreSQL a nivel de motor — no solo a nivel de aplicación.</p>
+
+        <div class="callout">
+          <span class="callout-label">Una decisión de diseño que aclaro aquí</span>
+          <p>El encargo usa <span class="mono">tenant_id</span> como ejemplo, pero también pide multiempresa por usuario (punto 27) y multisucursal (punto 28). Separo dos conceptos: <strong><span class="mono">tenants</span></strong> es la cuenta que paga la suscripción, y <strong><span class="mono">companies</span></strong> es cada RUC que opera bajo esa cuenta (el Plan Empresa permite más de una). El aislamiento real de datos comerciales — ventas, clientes, stock — es por <span class="mono">company_id</span>, no por <span class="mono">tenant_id</span>: dos empresas con RUC distinto bajo la misma suscripción tampoco deben verse los datos entre sí.</p>
+        </div>
+
+        <figure>
+          <div class="fig-frame">
+            <svg viewBox="0 0 860 320" role="img" aria-label="Diagrama: una petición autenticada lleva el company_id dentro del JWT, nunca en el body. El middleware de NestJS lo fija en el contexto de la petición y en una variable de sesión de PostgreSQL. El repositorio agrega el filtro company_id automáticamente, y una política Row-Level Security en PostgreSQL lo vuelve a exigir a nivel de motor, de modo que una fila de otra empresa nunca sale aunque el filtro de la aplicación falle.">
+              <defs>
+                <marker id="qarrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g class="diagram-text" fill="none" stroke="currentColor" stroke-width="1.4" font-size="12">
+                <rect x="20" y="128" width="150" height="60" rx="8"/>
+                <text x="95" y="153" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">JWT</text>
+                <text x="95" y="170" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5" class="diagram-mono">company_id firmado</text>
+
+                <rect x="230" y="128" width="170" height="60" rx="8"/>
+                <text x="315" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="11.5">TenantMiddleware</text>
+                <text x="315" y="167" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">fija contexto por request</text>
+
+                <rect x="460" y="40" width="170" height="60" rx="8"/>
+                <text x="545" y="62" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="11.5">Repositorio</text>
+                <text x="545" y="79" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">agrega WHERE company_id</text>
+
+                <rect x="460" y="216" width="170" height="60" rx="8"/>
+                <text x="545" y="238" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="11.5">Row-Level Security</text>
+                <text x="545" y="255" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">política en PostgreSQL</text>
+
+                <rect x="690" y="128" width="150" height="60" rx="8"/>
+                <text x="765" y="153" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Fila devuelta</text>
+                <text x="765" y="170" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">solo de esa empresa</text>
+
+                <line x1="170" y1="158" x2="228" y2="158" marker-end="url(#qarrow2)"/>
+                <line x1="400" y1="148" x2="458" y2="90" marker-end="url(#qarrow2)"/>
+                <line x1="400" y1="168" x2="458" y2="230" marker-end="url(#qarrow2)"/>
+                <line x1="630" y1="70" x2="688" y2="140" marker-end="url(#qarrow2)"/>
+                <line x1="630" y1="246" x2="688" y2="176" marker-end="url(#qarrow2)"/>
+
+                <text x="440" y="20" fill="currentColor" stroke="none" font-size="11" font-weight="600">capa aplicación</text>
+                <text x="440" y="300" fill="currentColor" stroke="none" font-size="11" font-weight="600">capa motor de base de datos</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>Dos capas independientes exigen el mismo filtro: si el repositorio olvidara el <span class="mono">WHERE company_id</span>, la política Row-Level Security de PostgreSQL igual bloquea la fila ajena.</figcaption>
+        </figure>
+
+        <h3>Las cinco capas de aislamiento</h3>
+        <ol>
+          <li><strong>Origen del dato:</strong> el <span class="mono">company_id</span> sale únicamente del JWT firmado en el login — nunca de un header, query param o campo del body que el cliente pueda enviar.</li>
+          <li><strong>Middleware de aplicación:</strong> <span class="mono">TenantMiddleware</span> resuelve la empresa activa y la guarda en <span class="mono">AsyncLocalStorage</span> para toda la duración de la petición.</li>
+          <li><strong>Repositorio base:</strong> una extensión de Prisma inyecta <span class="mono">WHERE company_id = :actual</span> en cada consulta de una tabla de negocio — no es una convención que un desarrollador pueda olvidar, es estructural.</li>
+          <li><strong>Row-Level Security de PostgreSQL:</strong> cada tabla de negocio tiene una política <span class="mono">USING (company_id = current_setting('app.company_id')::uuid)</span>, y cada transacción abre con <span class="mono">SET LOCAL app.company_id</span>. Es la red de seguridad real: funciona incluso si el paso 3 tuviera un error.</li>
+          <li><strong>Pruebas dedicadas:</strong> una suite que, autenticada como la Empresa A, intenta leer o escribir un registro de la Empresa B y espera que falle — se ejecuta en cada build, no es una prueba manual ocasional.</li>
+        </ol>
+
+        <p>El <strong>Super Admin</strong> es la única excepción intencional: opera con un rol de base de datos separado que sí puede saltar RLS, usado exclusivamente por endpoints bajo <span class="mono">platform.*</span> y siempre registrado en auditoría — no hay ninguna ruta de una empresa normal que pueda alcanzar ese privilegio.</p>
+
+        <p>Para el Plan Empresa, si algún cliente grande exige aislamiento físico adicional por motivos de cumplimiento, el mismo esquema admite pasar esa cuenta puntual a base de datos propia sin rediseñar el sistema — se deja anotado como camino futuro, no construido en la Fase 1.</p>
+      </section>
+
+      <section id="basedatos">
+        <h2><span class="n">05</span>Modelo de base de datos inicial</h2>
+        <p class="section-lede">Organizado por dominio. No es el DDL final — es la forma y las relaciones; las migraciones se generan al aprobar la Fase 1. Toda tabla de negocio lleva <span class="mono">company_id</span> salvo que se indique lo contrario.</p>
+
+        <h3>Plataforma y cuentas</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tabla</th><th>Campos clave</th><th>Nota</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">tenants</td><td class="mono">id, nombre, usuario_dueño_id, estado</td><td>La cuenta que paga la suscripción; puede tener 1..N <span class="mono">companies</span>.</td></tr>
+              <tr><td class="mono">companies</td><td class="mono">id, tenant_id, ruc, razón_social, ubigeo, logo_url, estado</td><td>El límite real de aislamiento de datos comerciales.</td></tr>
+              <tr><td class="mono">branches</td><td class="mono">id, company_id, nombre, ubigeo, activa</td><td>Sucursales; series, almacenes y usuarios pueden anclarse a una.</td></tr>
+              <tr><td class="mono">users</td><td class="mono">id, nombres, correo único, password_hash, correo_verificado_en</td><td>La persona, sin rol propio — el rol vive en <span class="mono">company_users</span>.</td></tr>
+              <tr><td class="mono">company_users</td><td class="mono">user_id, company_id, role_id, branch_id?, activo</td><td>Resuelve un usuario en varias empresas con rol distinto en cada una.</td></tr>
+              <tr><td class="mono">roles / permissions / role_permissions</td><td class="mono">clave <span class="mono">módulo.recurso.acción</span></td><td>Ver detalle en la sección 08.</td></tr>
+              <tr><td class="mono">sessions</td><td class="mono">id, user_id, jti único, dispositivo, revocada_en</td><td>Mismo patrón ya construido: revocación real de sesión, no solo borrar el token del navegador.</td></tr>
+              <tr><td class="mono">audit_logs</td><td class="mono">company_id?, user_id, acción, entidad, valor_anterior/nuevo JSONB, ip</td><td><span class="mono">company_id</span> nulo para acciones de Super Admin.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>SaaS: planes y suscripciones</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tabla</th><th>Campos clave</th><th>Nota</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">modules</td><td class="mono">id, clave, nombre, fase</td><td>Cada casilla del menú (sección 07) corresponde a un módulo aquí.</td></tr>
+              <tr><td class="mono">plans</td><td class="mono">precio, periodicidad, días_prueba, límites JSONB</td><td><span class="mono">límites</span>: usuarios, empresas, sucursales, documentos/mes, almacenes, storage_mb — nada de esto en código.</td></tr>
+              <tr><td class="mono">plan_modules</td><td class="mono">plan_id, module_id</td><td>Qué ve cada plan en el menú y qué endpoints puede llamar.</td></tr>
+              <tr><td class="mono">subscriptions</td><td class="mono">tenant_id, plan_id, estado, período_inicio/fin, prueba_hasta</td><td>Estados: trial, activa, pendiente_pago, vencida, suspendida, cancelada.</td></tr>
+              <tr><td class="mono">saas_payment_methods</td><td class="mono">tenant_id, proveedor, token_referencia</td><td>Solo el token del proveedor de pagos — nunca datos de tarjeta.</td></tr>
+              <tr><td class="mono">saas_charges</td><td class="mono">tenant_id, subscription_id, monto, estado, emitido_en</td><td>Deliberadamente <em>no</em> se llama "invoices" — para no confundirse con las facturas SUNAT del cliente.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Comercial</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tabla</th><th>Campos clave</th><th>Nota</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">customers / suppliers</td><td class="mono">tipo_doc, número_doc, ubigeo, crédito_permitido</td><td>Historial de ventas/pagos se consulta, no se duplica.</td></tr>
+              <tr><td class="mono">products / product_categories</td><td class="mono">código, sku, tipo[producto|servicio], precios, código_sunat</td><td>Tres precios (compra, venta, mayorista) como columnas explícitas.</td></tr>
+              <tr><td class="mono">product_variants</td><td class="mono">atributos JSONB {color, talla, modelo…}</td><td>JSONB en vez de columnas rígidas — cada rubro tiene sus propios atributos.</td></tr>
+              <tr><td class="mono">warehouses / product_stock</td><td class="mono">product_id, warehouse_id, cantidad</td><td><span class="mono">product_stock</span> es una columna materializada — se recalcula siempre junto a un movimiento, nunca se edita sola.</td></tr>
+              <tr><td class="mono">inventory_movements</td><td class="mono">tipo[entrada|salida|transferencia|ajuste|devolución], costo, documento_relacionado</td><td>Ledger append-only: es el kardex mismo, no un resumen aparte.</td></tr>
+              <tr><td class="mono">quotes → sales_orders → invoices</td><td class="mono">origen_tipo, origen_id en cada eslabón</td><td>Cada documento sabe de qué documento anterior nació (trazabilidad pedida en el punto 13).</td></tr>
+              <tr><td class="mono">purchase_orders → purchases</td><td class="mono">mismo patrón, del lado de compras</td><td>Simetría intencional con el flujo de ventas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Facturación electrónica</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tabla</th><th>Campos clave</th><th>Nota</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">document_series</td><td class="mono">company_id, branch_id, tipo_documento, serie, correlativo_actual</td><td>Reserva con bloqueo de fila (<span class="mono">FOR UPDATE</span>) — mismo patrón ya probado, para que dos ventas simultáneas nunca choquen de correlativo.</td></tr>
+              <tr><td class="mono">electronic_documents</td><td class="mono">tipo[factura|boleta|nota_crédito|nota_débito], estado, enlace_pdf/xml/cdr, hash</td><td>Una sola tabla para los cuatro tipos — como en el prototipo ya construido — en vez de tres tablas separadas por tipo de nota.</td></tr>
+              <tr><td class="mono">electronic_document_items</td><td class="mono">producto_id, cantidad, precio, igv</td><td>Líneas del comprobante.</td></tr>
+              <tr><td class="mono">electronic_document_logs</td><td class="mono">origen[interno|ose|sunat], payload_enviado/recibido JSONB</td><td>Fusiona lo que a veces se separa en "logs" y "respuestas SUNAT" — una sola bitácora por documento, más fácil de depurar en soporte.</td></tr>
+              <tr><td class="mono">company_billing_credentials</td><td class="mono">company_id, proveedor, credenciales_cifradas, modo[demo|producción]</td><td>Cifradas en reposo; cada empresa trae las suyas — ver sección 12.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Finanzas</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tabla</th><th>Campos clave</th><th>Nota</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">payment_methods / payments</td><td class="mono">nombre (efectivo, tarjeta, transferencia, Yape/Plin)</td><td>Pagos del negocio a sus clientes — no confundir con <span class="mono">saas_payment_methods</span>.</td></tr>
+              <tr><td class="mono">accounts_receivable / accounts_payable</td><td class="mono">total, pagado, saldo, vencimiento, estado</td><td>Se actualizan de forma transaccional al registrar un pago; siempre reproducibles desde comprobantes + pagos.</td></tr>
+              <tr><td class="mono">cash_registers / cash_movements</td><td class="mono">monto_apertura, monto_cierre_contado vs esperado</td><td>Arqueo con diferencia explícita, usuario responsable.</td></tr>
+              <tr><td class="mono">taxes / currencies / exchange_rates</td><td class="mono">tasa, es_default, moneda_origen/destino</td><td>IGV configurable, no un <span class="mono">0.18</span> fijo en el código.</td></tr>
+              <tr><td class="mono">notifications</td><td class="mono">tipo, título, leída_en, metadata JSONB</td><td>Stock bajo, comprobante rechazado, suscripción por vencer, etc.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="carpetas">
+        <h2><span class="n">06</span>Estructura de carpetas</h2>
+        <p class="section-lede">Monorepo con <span class="mono">pnpm</span> workspaces. Cada módulo de negocio es autocontenido en el backend (controller → service → repository), y el frontend refleja el mismo mapa de módulos que el menú de la sección 07.</p>
+
+        <div class="table-wrap">
+          <div class="tree" style="padding:18px 20px;">apps/
+  api/                      <span class="cmt"># NestJS</span>
+    src/modules/
+      auth/  tenants/  billing/  users/  rbac/
+      customers/  suppliers/  catalog/  inventory/
+      sales/  purchases/  finance/
+      electronic-billing/
+        providers/
+          electronic-billing-provider.interface.ts
+          nubefact.provider.ts
+          sunat-direct.provider.ts   <span class="cmt"># futuro, no en Fase 1-3</span>
+        electronic-billing.service.ts
+      reports/  notifications/  audit/  super-admin/
+    src/common/               <span class="cmt"># guards, interceptors, decoradores, filtros</span>
+    src/database/             <span class="cmt"># schema Prisma, migraciones, seeders</span>
+  web/                      <span class="cmt"># React SPA</span>
+    src/modules/              <span class="cmt"># ventas, compras, inventario, finanzas, facturación…</span>
+    src/components/  src/hooks/  src/lib/
+  workers/                  <span class="cmt"># procesos BullMQ: facturación, correo, recordatorios</span>
+packages/
+  shared-types/              <span class="cmt"># DTOs y esquemas Zod compartidos api ↔ web ↔ workers</span>
+infra/
+  docker-compose.yml  migrations/</div>
+        </div>
+
+        <p>El paquete <span class="mono">shared-types</span> es el detalle que evita el requisito 38 de "no duplicar código": el mismo esquema Zod que valida un formulario de factura en el navegador valida el DTO en el backend — una sola definición de "qué es una factura válida".</p>
+      </section>
+
+      <section id="modulos">
+        <h2><span class="n">07</span>Módulos del sistema</h2>
+        <p class="section-lede">El menú del punto 7 del encargo, mapeado a módulo de backend y a la fase del roadmap que lo entrega.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Menú</th><th>Módulo backend</th><th>Fase</th></tr></thead>
+            <tbody>
+              <tr><td>Inicio (Dashboard)</td><td class="mono">reports</td><td><span class="pill on">Fase 1</span></td></tr>
+              <tr><td>Ventas — cotizaciones, pedidos, facturas, boletas, notas, clientes</td><td class="mono">sales, electronic-billing, customers</td><td><span class="pill on">Fase 3–4</span></td></tr>
+              <tr><td>Compras — solicitudes, órdenes, proveedores</td><td class="mono">purchases, suppliers</td><td><span class="pill later">Fase 6</span></td></tr>
+              <tr><td>Inventario — productos, almacenes, kardex, transferencias</td><td class="mono">catalog, inventory</td><td><span class="pill later">Fase 5</span></td></tr>
+              <tr><td>Finanzas — caja, bancos, cuentas por cobrar/pagar</td><td class="mono">finance</td><td><span class="pill later">Fase 7</span></td></tr>
+              <tr><td>Facturación electrónica — comprobantes, XML, CDR</td><td class="mono">electronic-billing</td><td><span class="pill on">Fase 3</span></td></tr>
+              <tr><td>Reportes</td><td class="mono">reports</td><td><span class="pill later">Fase 8</span></td></tr>
+              <tr><td>Configuración — empresa, usuarios, roles, series, suscripción</td><td class="mono">tenants, rbac, billing, electronic-billing</td><td><span class="pill on">Fase 1–3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="roles">
+        <h2><span class="n">08</span>Roles y permisos</h2>
+        <p class="section-lede">Permisos granulares por acción, no por módulo entero — el mismo enfoque ya probado en el prototipo, ahora escalado a roles personalizados por empresa.</p>
+
+        <ul>
+          <li>Cada permiso es una clave <span class="mono">módulo.recurso.acción</span> (ej. <span class="mono">sales.invoice.void</span>, <span class="mono">inventory.stock.adjust</span>, <span class="mono">config.users.manage</span>).</li>
+          <li>Los roles son paquetes de permisos. Los 5 roles base (ver tabla) se cargan como datos semilla, no como <span class="mono">if</span> en el código — cualquier empresa puede clonarlos y ajustarlos, o crear roles propios.</li>
+          <li><span class="mono">company_users</span> asigna usuario + empresa + rol (+ sucursal opcional) — el mismo Juan puede ser Administrador en la Empresa A y Vendedor en la Empresa B.</li>
+          <li>El Super Admin vive en un espacio de permisos separado (<span class="mono">platform.*</span>), resuelto por un guard distinto — estructuralmente no hay forma de que un rol de empresa escale a permisos de plataforma.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Acción</th><th>Admin</th><th>Vendedor</th><th>Almacenero</th><th>Contabilidad</th></tr></thead>
+            <tbody>
+              <tr><td>Emitir boleta / factura</td><td>sí</td><td>sí</td><td>no</td><td>no</td></tr>
+              <tr><td>Anular comprobante / nota de crédito</td><td>sí</td><td>no</td><td>no</td><td>según se configure</td></tr>
+              <tr><td>Registrar entradas/salidas de stock</td><td>sí</td><td>no</td><td>sí</td><td>no</td></tr>
+              <tr><td>Gestionar usuarios y roles</td><td>sí</td><td>no</td><td>no</td><td>no</td></tr>
+              <tr><td>Ver cuentas por cobrar/pagar</td><td>sí</td><td>no</td><td>no</td><td>sí</td></tr>
+              <tr><td>Configurar series y comprobantes</td><td>sí</td><td>no</td><td>no</td><td>no</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="field-note" style="color:var(--ink-faint); font-size:13px">Punto de partida editable desde Configuración → Roles, no una tabla fija en el código.</p>
+      </section>
+
+      <section id="planes">
+        <h2><span class="n">09</span>Planes y suscripciones</h2>
+        <p class="section-lede">Todo lo que un plan limita vive en datos, en <span class="mono">plans.límites</span> (JSONB), para que el Super Admin cree o edite planes sin desplegar código.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Plan</th><th>Usuarios</th><th>Empresas</th><th>Módulos</th><th>Prueba</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Básico</strong></td><td>1</td><td>1</td><td>Facturación, clientes, productos, reportes básicos</td><td>14 días</td></tr>
+              <tr><td><strong>Profesional</strong></td><td>hasta 5</td><td>1</td><td>+ Ventas, compras, inventario, caja, CxC</td><td>14 días</td></tr>
+              <tr><td><strong>Empresa</strong></td><td>sin límite fijo</td><td>múltiples</td><td>+ multisucursal, inventario avanzado, finanzas, API</td><td>configurable</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Un <span class="mono">PlanLimitsService</span> se consulta antes de cualquier acción que cuente contra un límite (crear un usuario, sumar una empresa, emitir el comprobante número 501 del mes) — nunca falla en silencio: responde 402/403 con un mensaje claro de qué límite se alcanzó y qué plan lo resuelve. El conteo de uso actual se calcula bajo demanda para la Fase 2 (una consulta <span class="mono">COUNT</span>); un contador en Redis solo se justifica cuando el volumen lo exija.</p>
+      </section>
+
+      <section id="onboarding">
+        <h2><span class="n">10</span>Flujo de registro de empresa</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Paso</th><th>Qué ocurre</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">1 · Cuenta</td><td>Crea <span class="mono">users</span> con correo sin verificar; se encola el correo de verificación.</td></tr>
+              <tr><td class="mono">2 · Empresa</td><td>Crea <span class="mono">companies</span> en estado borrador; valida formato y dígito verificador del RUC. La consulta pública de RUC en SUNAT existe pero tiene límites de uso — útil para autocompletar razón social, no para depender de ella en producción sin probarla antes.</td></tr>
+              <tr><td class="mono">3 · Plan</td><td>Crea <span class="mono">subscriptions</span> en <span class="mono">trial</span> (o <span class="mono">pendiente_pago</span> si el plan no tiene prueba).</td></tr>
+              <tr><td class="mono">4 · Facturación electrónica</td><td>El admin ingresa las credenciales de su proveedor OSE (ver sección 12); quedan cifradas y en <span class="mono">modo demo</span> hasta que las active explícitamente a producción.</td></tr>
+              <tr><td class="mono">5 · Primer usuario</td><td>El mismo usuario del paso 1 queda como Administrador en <span class="mono">company_users</span> — no hace falta crear otro.</td></tr>
+              <tr><td class="mono">6 · Dashboard</td><td>Entra con una checklist de arranque (cargar productos, clientes, primera serie) en vez de una pantalla vacía.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="emision">
+        <h2><span class="n">11</span>Flujo de emisión de un comprobante</h2>
+        <p class="section-lede">Asíncrono desde el primer momento: la venta se confirma en la base de datos antes de tocar a un tercero, y el envío a SUNAT ocurre después, en cola — el mismo diseño ya probado en el prototipo, ahora generalizado.</p>
+
+        <figure>
+          <div class="fig-frame">
+            <svg viewBox="0 0 860 190" role="img" aria-label="Máquina de estados de un comprobante electrónico: borrador, pendiente, generando, enviado, y luego aceptado, aceptado con observaciones, rechazado o error; un comprobante aceptado solo puede pasar a anulado mediante una nota de crédito.">
+              <defs>
+                <marker id="qarrow3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g class="diagram-text" fill="none" stroke="currentColor" stroke-width="1.4" font-size="11.5">
+                <rect x="10" y="65" width="110" height="50" rx="7"/>
+                <text x="65" y="95" text-anchor="middle" fill="currentColor" stroke="none">Borrador</text>
+
+                <rect x="160" y="65" width="110" height="50" rx="7"/>
+                <text x="215" y="95" text-anchor="middle" fill="currentColor" stroke="none">Pendiente</text>
+
+                <rect x="310" y="65" width="110" height="50" rx="7"/>
+                <text x="365" y="95" text-anchor="middle" fill="currentColor" stroke="none">Generando</text>
+
+                <rect x="460" y="65" width="110" height="50" rx="7"/>
+                <text x="515" y="95" text-anchor="middle" fill="currentColor" stroke="none">Enviado</text>
+
+                <rect x="630" y="8" width="120" height="42" rx="7"/>
+                <text x="690" y="34" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">Aceptado</text>
+
+                <rect x="630" y="58" width="120" height="42" rx="7"/>
+                <text x="690" y="84" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Con observaciones</text>
+
+                <rect x="630" y="108" width="120" height="42" rx="7"/>
+                <text x="690" y="134" text-anchor="middle" fill="currentColor" stroke="none" font-size="10.5">Rechazado</text>
+
+                <rect x="630" y="158" width="120" height="27" rx="6"/>
+                <text x="690" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Error de envío</text>
+
+                <line x1="120" y1="90" x2="158" y2="90" marker-end="url(#qarrow3)"/>
+                <line x1="270" y1="90" x2="308" y2="90" marker-end="url(#qarrow3)"/>
+                <line x1="420" y1="90" x2="458" y2="90" marker-end="url(#qarrow3)"/>
+                <line x1="570" y1="80" x2="628" y2="35" marker-end="url(#qarrow3)"/>
+                <line x1="570" y1="88" x2="628" y2="80" marker-end="url(#qarrow3)"/>
+                <line x1="570" y1="96" x2="628" y2="125" marker-end="url(#qarrow3)"/>
+                <line x1="570" y1="104" x2="628" y2="168" marker-end="url(#qarrow3)"/>
+
+                <text x="365" y="140" fill="currentColor" stroke="none" font-size="10.5">venta ya confirmada en BD — esto corre en un worker</text>
+                <text x="690" y="0" fill="currentColor" stroke="none" font-size="10" text-anchor="middle" dy="-4">solo aceptado → anulado va por nota de crédito, nunca DELETE</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>La venta y el descuento de stock se confirman en una sola transacción antes de tocar a SUNAT/OSE; el envío corre después, en un worker, y un comprobante rechazado o con error se puede reintentar sin repetir la venta.</figcaption>
+        </figure>
+
+        <p>La interfaz de integración se mantiene desacoplada del motor de ventas, para poder cambiar de proveedor por empresa sin tocar la lógica de negocio:</p>
+        <pre><code><span class="kw">interface</span> ElectronicBillingProvider {
+  send(document: ElectronicDocumentPayload, credentials: ProviderCredentials): Promise&lt;ElectronicBillingResult&gt;;
+  checkStatus(externalId: string, credentials: ProviderCredentials): Promise&lt;ElectronicBillingResult&gt;;
+}
+<span class="cmt">// credentials se resuelve por company_id — nunca es una credencial global de la plataforma.
+// Primera implementación real: NubeFactProvider, ya construida y probada en el prototipo.
+// SunatDirectProvider queda como interfaz preparada, sin implementar (ver riesgos, sección 12).</span></code></pre>
+      </section>
+
+      <section id="riesgos">
+        <h2><span class="n">12</span>Riesgos legales y técnicos</h2>
+        <p class="section-lede">Los que importan de verdad para un SaaS multiempresa de facturación electrónica en Perú — con lo que se pudo verificar y lo que queda pendiente de confirmar antes de comprometerse comercialmente.</p>
+
+        <div class="callout risk">
+          <span class="callout-label">Cada empresa necesita su propio camino a SUNAT</span>
+          <p>La plataforma no puede compartir un único certificado o cuenta OSE para todas las empresas sin ser ella misma un OSE homologado. Verifiqué que NubeFacT sí ofrece un programa <strong>Reseller OSE</strong> pensado exactamente para esto — software que da de alta a muchas empresas cliente bajo un panel único: cuenta reseller por pago único, más una cuota mensual por empresa activa. Son las cifras publicadas en su sitio al momento de esta consulta; hay que confirmarlas directamente con NubeFacT antes de fijarlas en un modelo de precios propio.</p>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Camino recomendado para la Fase 3</span>
+          <p>Empezar más simple y barato: cada empresa trae su propia cuenta NubeFacT (o de otro OSE) y solo pega su ruta/token en <span class="mono">company_billing_credentials</span> — es exactamente el patrón ya construido y probado en el prototipo, sin costo ni contrato adicional para la plataforma. El modelo Reseller se evalúa después, cuando el volumen de empresas lo justifique.</p>
+        </div>
+
+        <div class="callout risk">
+          <span class="callout-label">No custodiar certificados digitales propios</span>
+          <p>Conectar directo a SUNAT (sin OSE) exigiría guardar el certificado <span class="mono">.pfx</span> y las claves SOL de cada empresa — responsabilidad legal alta si se filtran. Recomiendo no implementar <span class="mono">SunatDirectProvider</span> en las fases 1 a 3; dejar solo la interfaz preparada.</p>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Retención legal de XML y CDR</span>
+          <p>SUNAT exige conservar los comprobantes electrónicos por el plazo de prescripción tributaria. No asumo aquí el número exacto de años vigente — se debe confirmar con un asesor tributario o la normativa SUNAT actual antes de definir cualquier política de borrado automático.</p>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Datos personales de clientes y proveedores</span>
+          <p>La Ley N.° 29733 de Protección de Datos Personales aplica a lo que cada empresa registra de sus clientes. La plataforma actúa como encargada del tratamiento; conviene una política de privacidad propia y dejar contractualmente claro que cada empresa-cliente responde por sus propios datos ante la ley.</p>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Concurrencia de correlativos</span>
+          <p>Ya resuelto en el prototipo con bloqueo de fila por serie + sucursal + empresa — se reutiliza el mismo patrón, no hay riesgo nuevo aquí.</p>
+        </div>
+
+        <p style="font-size:13px; color:var(--ink-faint)">Fuentes consultadas: <a href="https://www.nubefact.com/reseller" target="_blank" rel="noopener">NubeFacT — Reseller</a>, <a href="https://www.nubefact.com/ose-para-proveedores" target="_blank" rel="noopener">NubeFacT — Reseller OSE para proveedores</a>.</p>
+      </section>
+
+      <section id="configurable">
+        <h2><span class="n">13</span>Qué debe ser configurable</h2>
+        <p class="section-lede">Nada de esto vive como constante en el código — todo se lee de una tabla, editable desde un panel.</p>
+        <div class="grid-2">
+          <div class="card">
+            <ul style="margin-bottom:0">
+              <li>Límites de cada plan (usuarios, empresas, sucursales, documentos/mes, almacenamiento)</li>
+              <li>Módulos habilitados por plan</li>
+              <li>Series y correlativos por empresa/sucursal</li>
+              <li>Tasas de impuestos (IGV y futuros)</li>
+              <li>Métodos de pago, de venta y de suscripción</li>
+            </ul>
+          </div>
+          <div class="card">
+            <ul style="margin-bottom:0">
+              <li>Roles y permisos personalizados por empresa</li>
+              <li>Monedas y tipo de cambio</li>
+              <li>Proveedor de facturación electrónica por empresa</li>
+              <li>Plantillas de PDF (A4 / ticket / A5) y membrete</li>
+              <li>Umbrales de notificación y días de prueba por plan</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="roadmap">
+        <h2><span class="n">14</span>Roadmap de desarrollo</h2>
+        <p class="section-lede">El mismo orden de fases del encargo, con lo que cada una entrega y su principal riesgo técnico. Ninguna fase avanza a la siguiente si la actual tiene errores críticos sin resolver.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fase</th><th>Alcance</th><th>Entregable clave</th><th>Riesgo principal</th></tr></thead>
+            <tbody>
+              <tr><td class="phase-row"><span class="phase-badge">01</span>Arquitectura</td><td>Auth, multi-tenant, empresas, usuarios, roles, permisos</td><td>Aislamiento entre empresas verificado con pruebas automatizadas</td><td>Un descuido aquí compromete todo lo que viene después</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">02</span>SaaS</td><td>Planes, suscripciones, límites, trial, pagos</td><td>Cobro recurrente funcionando de punta a punta</td><td>Integración con pasarela de pago peruana</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">03</span>Facturación</td><td>Clientes, productos, series, comprobantes, PDF, XML, OSE</td><td>Boleta/factura real aceptada por SUNAT en modo demo</td><td>Generaliza el prototipo ya probado a multiempresa — no parte de cero</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">04</span>Ventas</td><td>Cotizaciones, pedidos, pagos, cuentas por cobrar</td><td>Flujo cotización → pedido → factura → pago</td><td>Conversión entre documentos sin perder trazabilidad</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">05</span>Inventario</td><td>Almacenes, kardex, movimientos, transferencias</td><td>Stock siempre reconstruible desde el kardex</td><td>Nunca tocar stock sin su movimiento</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">06</span>Compras</td><td>Proveedores, órdenes, compras, cuentas por pagar</td><td>Flujo simétrico al de ventas</td><td>Bajo — reutiliza patrones de la Fase 4</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">07</span>Finanzas</td><td>Caja, bancos, ingresos, egresos</td><td>Arqueo de caja con diferencia explícita</td><td>Concurrencia en aperturas/cierres por sucursal</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">08</span>Reportes</td><td>Ventas, compras, inventario, IGV, exportables</td><td>PDF/Excel/CSV desde cada reporte</td><td>Rendimiento de consultas al crecer el volumen</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">09</span>CRM</td><td>Seguimiento comercial sobre clientes ya existentes</td><td>Pipeline básico de oportunidades</td><td>Definir alcance junto contigo antes de empezar</td></tr>
+              <tr><td class="phase-row"><span class="phase-badge">10</span>ERP avanzado</td><td>Funciones que surjan del uso real de las fases 1–9</td><td>—</td><td>Se define con datos de uso reales, no antes</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="siguiente">
+        <h2><span class="n">15</span>Próximo paso</h2>
+        <p>Esto cubre los 15 puntos que pediste: análisis, stack, arquitectura, multi-tenancy, modelo de datos, carpetas, módulos, roles, planes, flujo de registro, flujo de emisión, riesgos, qué es configurable y el roadmap. No he tocado código de la Fase 1 todavía — quedo a la espera de tu confirmación, o de cualquier ajuste que quieras antes de arrancar: el nombre, el stack, la estrategia multi-tenant, o el alcance de alguna fase.</p>
+      </section>
+
+      <footer class="doc-foot">
+        Documento de arquitectura — Qolqa ERP · elaborado a partir del prompt maestro del 27 de agosto de 2026.
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  try {
+    var sidebar = document.getElementById('sidebar');
+    var toggle = document.getElementById('sidebarToggle');
+    var scrim = document.getElementById('scrim');
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      scrim.classList.remove('show');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+    function openSidebar() {
+      sidebar.classList.add('open');
+      scrim.classList.add('show');
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar();
+      });
+    }
+    if (scrim) scrim.addEventListener('click', closeSidebar);
+    var tocLinks = document.querySelectorAll('#toc a');
+    tocLinks.forEach(function (a) {
+      a.addEventListener('click', function () { closeSidebar(); });
+    });
+
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+    if ('IntersectionObserver' in window && sections.length) {
+      var map = {};
+      tocLinks.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var link = map[entry.target.id];
+          if (!link) return;
+          if (entry.isIntersecting) {
+            tocLinks.forEach(function (a) { a.classList.remove('active'); });
+            link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+      sections.forEach(function (s) { observer.observe(s); });
+    }
+  } catch (e) { /* progressive enhancement only */ }
+})();
+</script>
