@@ -8,7 +8,7 @@ const { tienePermiso } = require('../config/permisos');
 const auditoria = require('../services/auditoria.service');
 
 async function crear(req, res) {
-  const { cliente_id, metodo_pago, items, tipo_comprobante, es_credito, almacen_id } = req.body;
+  const { cliente_id, metodo_pago, items, tipo_comprobante, es_credito, dias_credito, almacen_id } = req.body;
 
   // "Un vendedor podría emitir una boleta, pero no anularla" — la otra cara
   // de la misma regla: un cajero puede emitir boleta/recibo pero NO factura
@@ -27,6 +27,7 @@ async function crear(req, res) {
     items,
     tipoComprobante: tipo_comprobante,
     esCredito: !!es_credito,
+    diasCredito: dias_credito,
     almacenId: almacen_id || null,
   });
 
@@ -98,7 +99,7 @@ async function listar(req, res) {
   const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
 
   const { rows: data } = await pool.query(
-    `SELECT v.id, v.fecha, v.total, v.metodo_pago, v.estado_documento, v.estado_pago, v.cliente_id,
+    `SELECT v.id, v.fecha, v.total, v.metodo_pago, v.estado_documento, v.estado_pago, v.fecha_vencimiento, v.cliente_id,
             c.id AS comprobante_id, c.tipo_comprobante, c.serie, c.correlativo, c.estado_sunat,
             cl.razon_social_o_nombre AS cliente_nombre
        FROM ventas v

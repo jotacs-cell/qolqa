@@ -1027,7 +1027,7 @@
         <div class="page-head"><h1>Cuentas por cobrar</h1><p>Ventas a crédito (fiado) que todavía no se cobran.</p></div>
         <div class="list-card" style="overflow-x:auto">
           <table>
-            <thead><tr><th>Venta</th><th>Cliente</th><th>Fecha</th><th style="text-align:right">Total</th><th></th></tr></thead>
+            <thead><tr><th>Venta</th><th>Cliente</th><th>Fecha</th><th>Vencimiento</th><th style="text-align:right">Total</th><th></th></tr></thead>
             <tbody id="cuentasCobrarBody"></tbody>
           </table>
         </div>
@@ -1790,6 +1790,49 @@
         }).join('') + '</div></div>';
     }
 
+    /* "Acciones pendientes" — a diferencia del resto de dashSide (de
+     * muestra), esta tarjeta es 100% real: cuenta las ventas a crédito ya
+     * vencidas (REAL.ventas + fecha_vencimiento) y navega a Cuentas por
+     * cobrar al hacer clic. renderDashboard()/cargarDatosRealesDeVentas()
+     * reescriben dashSide.innerHTML por completo, así que esta función se
+     * vuelve a llamar después de cada uno de esos puntos para no perder
+     * la tarjeta — ver los tres call sites marcados "acciones pendientes".
+     */
+    function renderAccionesPendientesDash() {
+      var dashSide = document.getElementById('dashSide');
+      if (!dashSide) return;
+      var anterior = document.getElementById('accionesPendientesCard');
+      if (!(esFs() && REAL.cargado)) {
+        if (anterior) anterior.remove();
+        return;
+      }
+      var hoyISO = new Date().toISOString().slice(0, 10);
+      var vencidas = REAL.ventas.filter(function (v) {
+        return v.estado_pago === 'pendiente' && v.estado_documento !== 'anulada' && v.fecha_vencimiento && v.fecha_vencimiento.slice(0, 10) < hoyISO;
+      });
+      var totalVencido = vencidas.reduce(function (s, v) { return s + Number(v.total); }, 0);
+      var html = '<div class="card" id="accionesPendientesCard"><div class="card-head"><h3>Acciones pendientes</h3></div><div class="card-body">' +
+        (vencidas.length
+          ? '<button type="button" class="list-row" data-goto-dash="cuentas-por-cobrar" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit">' +
+            '<span class="list-avatar" style="background:var(--danger-bg);color:var(--danger)">' + vencidas.length + '</span>' +
+            '<div class="list-main"><div class="t">Ventas a crédito vencidas</div><div class="s">' + money(totalVencido) + ' por cobrar</div></div>' +
+            '<svg class="icon" style="width:14px;height:14px;color:var(--ink-faint);flex-shrink:0"><use href="#i-chev-right"/></svg>' +
+            '</button>'
+          : '<div class="list-row"><span class="list-avatar" style="background:var(--success-bg);color:var(--success)">✓</span><div class="list-main"><div class="t">Sin ventas vencidas</div><div class="s">Las ventas a crédito están al día</div></div></div>'
+        ) +
+        '</div></div>';
+      if (anterior) anterior.outerHTML = html;
+      else dashSide.insertAdjacentHTML('afterbegin', html);
+    }
+    document.getElementById('dashSide').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-goto-dash]');
+      if (!btn) return;
+      var name = btn.getAttribute('data-goto-dash');
+      var group = navGroups.filter(function (g) { return g.getAttribute('data-view') === name; })[0];
+      if (!group) group = btn.closest('.nav-group');
+      selectView(name, group);
+    });
+
     /* ============================================================
      * Render: listas con búsqueda + filtros
      * ============================================================ */
@@ -2016,6 +2059,7 @@
         item.classList.toggle('active', item.getAttribute('data-co') === STATE.companyId);
       });
       renderDashboard();
+      renderAccionesPendientesDash(); // acciones pendientes (1/3): tras cambio de empresa
       renderVentas();
       renderFacturacion();
       renderInventario();
@@ -2333,6 +2377,7 @@
         }
 
         if (STATE.companyId === 'fs') renderDashboard();
+        renderAccionesPendientesDash(); // acciones pendientes (2/3): tras cargar KPIs/gráfico reales
 
         var banner = document.createElement('div');
         banner.textContent = '● Ventas hoy, ventas del mes, el gráfico y las últimas ventas de Ferretería San Martín son datos reales de pos-backend. El resto de esta pantalla (Por cobrar, Por pagar, Stock bajo, Clientes principales) sigue siendo de muestra.';
@@ -2473,6 +2518,7 @@
         REAL.comprobantesPago = comprobantesPagoRes.data || [];
         REAL.cargado = true;
         if (esFs()) {
+          renderAccionesPendientesDash(); // acciones pendientes (3/3): tras cada carga de REAL.ventas
           renderVentas(); renderFacturacion(); renderInventario(); renderClientes();
           renderCotizaciones(); renderPedidos(); renderAlmacenes(); renderKardex(); renderTransferencias();
           renderProveedores(); renderCompras(); renderOrdenesCompra();
@@ -4290,11 +4336,17 @@
         tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink-faint)">No hay ventas a crédito pendientes de cobro.</td></tr>';
         return;
       }
+      var hoyISO = new Date().toISOString().slice(0, 10);
       tbody.innerHTML = pendientes.map(function (v) {
+        var vencida = v.fecha_vencimiento && v.fecha_vencimiento.slice(0, 10) < hoyISO;
+        var vencimientoTxt = v.fecha_vencimiento
+          ? new Date(v.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—';
         return '<tr>' +
           '<td class="mono">' + esc(docCode(v)) + '</td>' +
           '<td>' + esc(v.cliente_nombre || 'Cliente varios') + '</td>' +
           '<td>' + fechaCorta(v.fecha) + '</td>' +
+          '<td>' + esc(vencimientoTxt) + (vencida ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') + '</td>' +
           '<td class="num">' + money(v.total) + '</td>' +
           '<td><button type="button" class="btn-ghost" data-cobrar-venta="' + v.id + '" style="font-size:12px;padding:4px 10px">Cobrar</button></td>' +
           '</tr>';
@@ -5648,6 +5700,11 @@
           '<div class="mini-row"><span>Fecha</span><span>' + esc(new Date(v.fecha).toLocaleString('es-PE')) + '</span></div>' +
           '<div class="mini-row"><span>Vendedor</span><span>' + esc(vendedorNombre) + '</span></div>' +
           '<div class="mini-row"><span>Método de pago</span><span>' + esc(v.metodo_pago.charAt(0).toUpperCase() + v.metodo_pago.slice(1)) + '</span></div>' +
+          (v.fecha_vencimiento
+            ? '<div class="mini-row"><span>Vencimiento</span><span>' + esc(new Date(v.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })) +
+              (v.estado_pago === 'pendiente' && v.fecha_vencimiento.slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') +
+              '</span></div>'
+            : '') +
           '</div>' +
           '</div>' +
           '<table class="items-table"><thead><tr><th>Producto</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">Subtotal</th></tr></thead><tbody>' +
@@ -5974,7 +6031,7 @@
         if (el) el.textContent = money(totalEstimado());
       }
 
-      function render(tipoPrevio, metodoPrevio, clientePrevio, esCreditoPrevio, almacenPrevio) {
+      function render(tipoPrevio, metodoPrevio, clientePrevio, esCreditoPrevio, almacenPrevio, diasCreditoPrevio) {
         var info = clienteInfo(clientePrevio);
         var hoy = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
         var almacenDefault = almacenPrevio || (REAL.almacenes.filter(function (a) { return a.es_principal; })[0] || REAL.almacenes[0] || {}).id;
@@ -6012,6 +6069,7 @@
           '<div class="mini-row"><span>Fecha</span><span>' + hoy + '</span></div>' +
           '<div class="mini-row"><span>Vendedor</span><span>' + esc(REAL.usuario ? REAL.usuario.nombre : '—') + '</span></div>' +
           '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:8px"><input type="checkbox" name="es_credito"' + (esCreditoPrevio ? ' checked' : '') + '> Venta a crédito (fiado) — queda pendiente de cobro</label>' +
+          '<div class="field" data-field="dias_credito" id="campoDiasCredito" style="margin-top:8px' + (esCreditoPrevio ? '' : ';display:none') + '"><label>Días de crédito</label><input type="number" name="dias_credito" min="1" step="1" value="' + esc(diasCreditoPrevio || 30) + '" style="max-width:120px"></div>' +
           '</div>' +
           '</div>' +
           '<table class="items-table"><thead><tr><th>Producto</th><th>Código</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">Subtotal</th><th></th></tr></thead>' +
@@ -6047,10 +6105,17 @@
           function (textoBuscado, nombreEncontrado) {
             var tipo = form.tipo_comprobante.value, metodo = form.metodo_pago.value, credito = form.es_credito.checked;
             var almacenActual = form.almacen_id ? form.almacen_id.value : '';
-            openNuevoCliente(function (creado) { render(tipo, metodo, creado.id, credito, almacenActual); }, textoBuscado, nombreEncontrado);
+            var diasCreditoActual = form.dias_credito ? form.dias_credito.value : '';
+            openNuevoCliente(function (creado) { render(tipo, metodo, creado.id, credito, almacenActual, diasCreditoActual); }, textoBuscado, nombreEncontrado);
           }
         );
         wireLineas();
+        // El campo "Días de crédito" solo tiene sentido si la venta es a
+        // crédito — se oculta el resto del tiempo en vez de mostrarlo
+        // siempre deshabilitado, para no confundir con un dato que no aplica.
+        form.es_credito.addEventListener('change', function () {
+          document.getElementById('campoDiasCredito').style.display = form.es_credito.checked ? '' : 'none';
+        });
         document.getElementById('btnAgregarLinea').addEventListener('click', function () {
           lineas.push({ producto_id: '', cantidad: 1 });
           refrescarLineas();
@@ -6064,6 +6129,11 @@
           var tipo = form.tipo_comprobante.value;
           var metodo = form.metodo_pago.value;
           var clienteId = form.cliente_id.value || null;
+          var diasCredito = form.es_credito.checked ? Number(form.dias_credito.value) : null;
+          if (form.es_credito.checked && (!Number.isInteger(diasCredito) || diasCredito <= 0)) {
+            toast('Indica un número de días de crédito válido.', 'error');
+            return;
+          }
           if (form.es_credito.checked && clienteId && !(await verificarLimiteCredito(clienteId, totalEstimado()))) return;
           var btn = document.getElementById('btnConfirmarVenta');
           btn.disabled = true; btn.textContent = 'Registrando…';
@@ -6073,6 +6143,7 @@
               body: JSON.stringify({
                 cliente_id: clienteId ? Number(clienteId) : null, metodo_pago: metodo, tipo_comprobante: tipo, items: items,
                 es_credito: form.es_credito.checked,
+                dias_credito: diasCredito,
                 almacen_id: form.almacen_id ? Number(form.almacen_id.value) : null,
               })
             });

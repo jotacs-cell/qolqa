@@ -20,12 +20,18 @@ const IGV = 0.18;
  * transacción — nunca se debe hacer una llamada de red mientras se
  * sostienen locks de fila en la base de datos.
  */
-async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, items, tipoComprobante, esCredito, almacenId: almacenIdSolicitado }) {
+async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, items, tipoComprobante, esCredito, diasCredito, almacenId: almacenIdSolicitado }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new ApiError(422, 'CARRITO_VACIO', 'La venta debe tener al menos un ítem.');
   }
   if (!['factura', 'boleta', 'recibo'].includes(tipoComprobante)) {
     throw new ApiError(422, 'TIPO_COMPROBANTE_INVALIDO', 'tipoComprobante debe ser "factura", "boleta" o "recibo".');
+  }
+  // Solo una venta a crédito necesita días de crédito (con qué calcular su
+  // fecha_vencimiento) — al contado no aplica y se guarda NULL.
+  const diasCreditoValido = esCredito ? Number(diasCredito) : null;
+  if (esCredito && (!Number.isInteger(diasCreditoValido) || diasCreditoValido <= 0)) {
+    throw new ApiError(422, 'DIAS_CREDITO_INVALIDO', 'Indica un número de días de crédito válido (mayor a 0).');
   }
 
   return conTransaccion(async (client) => {
@@ -105,9 +111,10 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     const turnoCajaId = turnoRows[0] ? turnoRows[0].id : null;
 
     const { rows: ventaRows } = await client.query(
-      `INSERT INTO ventas (company_id, usuario_id, cliente_id, total, metodo_pago, turno_caja_id, estado_pago, almacen_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, fecha`,
-      [companyId, usuarioId, clienteId || null, total, metodoPago, turnoCajaId, esCredito ? 'pendiente' : 'pagada', almacenId]
+      `INSERT INTO ventas (company_id, usuario_id, cliente_id, total, metodo_pago, turno_caja_id, estado_pago, almacen_id, fecha_vencimiento)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9::int IS NULL THEN NULL ELSE (CURRENT_DATE + make_interval(days => $9::int))::date END)
+       RETURNING id, fecha, fecha_vencimiento`,
+      [companyId, usuarioId, clienteId || null, total, metodoPago, turnoCajaId, esCredito ? 'pendiente' : 'pagada', almacenId, diasCreditoValido]
     );
     const venta = ventaRows[0];
 

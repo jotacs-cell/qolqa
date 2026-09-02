@@ -722,6 +722,12 @@ CREATE INDEX idx_comprobantes_venta_id ON comprobantes_electronicos (venta_id);
 CREATE INDEX idx_comprobantes_afectado ON comprobantes_electronicos (comprobante_afectado_id);
 CREATE INDEX idx_comprobantes_company ON comprobantes_electronicos (company_id);
 
+-- Una venta a crédito no tenía fecha límite de cobro — solo el estado
+-- pendiente/pagada (ver migración 014_dias_credito_venta.sql). Se calcula
+-- al registrar la venta como fecha + días de crédito indicados, para que
+-- Cuentas por cobrar pueda marcar una deuda como vencida.
+ALTER TABLE ventas ADD COLUMN fecha_vencimiento DATE;
+
 -- ---------------------------------------------------------------------
 -- trigger genérico: actualizar "actualizado_en"
 -- ---------------------------------------------------------------------
