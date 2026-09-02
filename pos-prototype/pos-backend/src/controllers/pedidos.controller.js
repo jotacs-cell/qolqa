@@ -2,6 +2,7 @@ const { pool, conTransaccion } = require('../config/db');
 const ApiError = require('../utils/ApiError');
 const ventasService = require('../services/ventas.service');
 const { emitirComprobante } = require('../services/facturacion/facturacion.service');
+const { tienePermiso } = require('../config/permisos');
 const auditoria = require('../services/auditoria.service');
 const kardex = require('../services/kardex.service');
 
@@ -298,6 +299,12 @@ async function facturar(req, res) {
   const { metodo_pago, tipo_comprobante } = req.body;
   if (!metodo_pago || !tipo_comprobante) {
     throw new ApiError(422, 'DATOS_INCOMPLETOS', 'metodo_pago y tipo_comprobante son requeridos para facturar.');
+  }
+  // Misma regla que ventas.controller.js#crear: un cajero no puede emitir
+  // facturas — facturar un pedido con tipo_comprobante "factura" es otra
+  // forma de emitir un comprobante y no debe saltarse esta restricción.
+  if (tipo_comprobante === 'factura' && !tienePermiso(req.usuario.rol, 'emitirFactura')) {
+    throw new ApiError(403, 'PERMISO_INSUFICIENTE', 'Tu rol no puede emitir facturas — solo boletas o recibos.');
   }
 
   const { rows } = await pool.query(
