@@ -830,18 +830,18 @@ function Footer() {
 
           <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm">
             <li>
-              <a href="#terminos" className="hover:text-white">
+              <a href="/#/terminos" className="hover:text-white">
                 Términos y Condiciones
               </a>
             </li>
             <li>
-              <a href="#privacidad" className="hover:text-white">
+              <a href="/#/privacidad" className="hover:text-white">
                 Política de Privacidad
               </a>
             </li>
             <li>
-              <a href="mailto:ventas@facturapos.pe" className="hover:text-white">
-                ventas@facturapos.pe
+              <a href="mailto:juancarlosrojochavez1@gmail.com" className="hover:text-white">
+                juancarlosrojochavez1@gmail.com
               </a>
             </li>
           </ul>

@@ -3,6 +3,7 @@ import LandingPage from "./LandingPage";
 import Login from "./Login";
 import SuperAdmin from "./SuperAdmin";
 import CotizacionForm from "./CotizacionForm";
+import { TerminosPage, PrivacidadPage } from "./LegalPages";
 
 /**
  * Router mínimo por hash, solo para poder previsualizar las 3 vistas en este
@@ -24,7 +25,14 @@ export default function App() {
   // scroll automático nunca encuentra el elemento. Lo reintentamos a mano
   // una vez que el DOM ya tiene la sección pintada.
   useEffect(() => {
-    if (hash && hash !== "#/login" && hash !== "#/admin" && hash !== "#/cotizacion-demo") {
+    if (
+      hash &&
+      hash !== "#/login" &&
+      hash !== "#/admin" &&
+      hash !== "#/cotizacion-demo" &&
+      hash !== "#/terminos" &&
+      hash !== "#/privacidad"
+    ) {
       const id = hash.replace(/^#/, "");
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -37,5 +45,7 @@ export default function App() {
   if (hash === "#/login") return <Login />;
   if (hash === "#/admin") return <SuperAdmin />;
   if (hash === "#/cotizacion-demo") return <CotizacionForm />;
+  if (hash === "#/terminos") return <TerminosPage />;
+  if (hash === "#/privacidad") return <PrivacidadPage />;
   return <LandingPage />;
 }
