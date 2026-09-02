@@ -635,7 +635,6 @@
       <div class="nav-group expanded" data-view="ventas">
         <button class="nav-head"><svg class="icon"><use href="#i-sales"/></svg><span class="label">Ventas</span><svg class="icon chev"><use href="#i-chev-right"/></svg></button>
         <div class="subnav">
-          <button class="subnav-item" type="button" data-goto="cotizaciones">Cotizaciones</button>
           <button class="subnav-item" type="button" data-goto="pedidos">Pedidos</button>
           <button class="subnav-item" type="button" data-goto="clientes">Clientes</button>
         </div>
@@ -677,7 +676,6 @@
           <button class="subnav-item" type="button" data-goto="ventas">Facturas y boletas</button>
           <button class="subnav-item" type="button">Notas de crédito</button>
           <button class="subnav-item" type="button" data-goto="facturacion">Comprobantes</button>
-          <button class="subnav-item" type="button">Series</button>
         </div>
       </div>
 
@@ -776,6 +774,7 @@
           <button class="filter-chip" data-filter="Factura">Facturas</button>
           <button class="filter-chip" data-filter="Boleta">Boletas</button>
           <button class="filter-chip" data-filter="Recibo">Recibos</button>
+          <button class="filter-chip" data-filter="Cotización">Cotizaciones</button>
           <div class="spacer"></div>
           <button class="btn-new" id="newVentaBtn2"><svg class="icon" style="width:13px;height:13px"><use href="#i-plus"/></svg>Nueva venta</button>
         </div>
@@ -803,27 +802,6 @@
         <button type="button" id="btnVolverNuevaVenta" class="btn-ghost" style="margin-bottom:14px">← Volver</button>
         <div class="list-card" style="position:relative;overflow:hidden">
           <div id="nuevaVentaContenido"></div>
-        </div>
-      </section>
-
-      <!-- ============ COTIZACIONES ============ -->
-      <section class="view" id="view-cotizaciones">
-        <div class="page-head"><h1>Cotizaciones</h1><p>Se crean cuando todavía no se confirma la venta — al confirmar, se convierten en venta real con su comprobante.</p></div>
-        <div class="toolbar" data-toolbar="cotizaciones">
-          <div class="search-box"><svg class="icon" style="width:13px;height:13px"><use href="#i-search"/></svg><input type="text" class="tb-search" placeholder="Buscar cotización…" aria-label="Buscar cotización"></div>
-          <button class="filter-chip active" data-filter="all">Todas</button>
-          <button class="filter-chip" data-filter="borrador">Borrador</button>
-          <button class="filter-chip" data-filter="enviada">Enviadas</button>
-          <button class="filter-chip" data-filter="confirmada">Confirmadas</button>
-          <button class="filter-chip" data-filter="rechazada">Rechazadas</button>
-          <div class="spacer"></div>
-          <button class="btn-new" id="newCotizacionBtn"><svg class="icon" style="width:13px;height:13px"><use href="#i-plus"/></svg>Nueva cotización</button>
-        </div>
-        <div class="list-card" style="overflow-x:auto">
-          <table>
-            <thead><tr><th>Cotización</th><th>Cliente</th><th>Vencimiento</th><th>Estado</th><th style="text-align:right">Total</th><th></th></tr></thead>
-            <tbody id="cotizacionesBody"></tbody>
-          </table>
         </div>
       </section>
 
@@ -2021,6 +1999,15 @@
           .catch(function (err) { toast(err.message, 'error'); });
         return;
       }
+      // Acciones de una cotización mostrada como fila dentro de Ventas
+      // (ver/editar, confirmar → genera la venta, rechazar).
+      var cotBtn = e.target.closest('button[data-cot-ver], button[data-cot-confirmar], button[data-cot-rechazar]');
+      if (cotBtn) {
+        if (cotBtn.hasAttribute('data-cot-ver')) verDetalleCotizacion(cotBtn.getAttribute('data-cot-ver'));
+        else if (cotBtn.hasAttribute('data-cot-confirmar')) confirmarCotizacion(cotBtn.getAttribute('data-cot-confirmar'));
+        else if (cotBtn.hasAttribute('data-cot-rechazar')) rechazarCotizacion(cotBtn.getAttribute('data-cot-rechazar'));
+        return;
+      }
       var btn = e.target.closest('[data-detail]');
       if (btn) {
         var view = btn.getAttribute('data-detail');
@@ -2042,6 +2029,11 @@
       if (filaVenta) {
         var idxFila = Number(filaVenta.getAttribute('data-idx'));
         var tipoFila = filaVenta.getAttribute('data-row-venta');
+        if (tipoFila === 'cotizacion-real') {
+          var cotDeFila = REAL.cotizacionesView[idxFila];
+          if (cotDeFila) verDetalleCotizacion(cotDeFila.id);
+          return;
+        }
         var rowDeFila = tipoFila === 'ventas-real' ? REAL.ventasView[idxFila] : REAL.facturacionView[idxFila];
         if (rowDeFila) abrirDetalleVentaReal(rowDeFila.ventaId);
       }
@@ -2064,7 +2056,6 @@
       renderFacturacion();
       renderInventario();
       renderClientes();
-      renderCotizaciones();
       renderPedidos();
       renderAlmacenes();
       renderKardex();
@@ -2207,8 +2198,6 @@
     });
     var newClienteBtnEl = document.getElementById('newClienteBtn');
     if (newClienteBtnEl) newClienteBtnEl.addEventListener('click', function () { openNuevoCliente(); });
-    var newCotizacionBtnEl = document.getElementById('newCotizacionBtn');
-    if (newCotizacionBtnEl) newCotizacionBtnEl.addEventListener('click', function () { openNuevaCotizacion(); });
     var newPedidoBtnEl = document.getElementById('newPedidoBtn');
     if (newPedidoBtnEl) newPedidoBtnEl.addEventListener('click', function () { openNuevoPedido(); });
     var newAlmacenBtnEl = document.getElementById('newAlmacenBtn');
@@ -2523,7 +2512,7 @@
         if (esFs()) {
           renderAccionesPendientesDash(); // acciones pendientes (3/3): tras cada carga de REAL.ventas
           renderVentas(); renderFacturacion(); renderInventario(); renderClientes();
-          renderCotizaciones(); renderPedidos(); renderAlmacenes(); renderKardex(); renderTransferencias();
+          renderPedidos(); renderAlmacenes(); renderKardex(); renderTransferencias();
           renderProveedores(); renderCompras(); renderOrdenesCompra();
           renderCaja(); renderCuentasPorCobrar(); renderCuentasPorPagar();
           renderCrm(); renderCatalogoVirtual(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
@@ -2545,25 +2534,58 @@
           ventaId: v.id, comprobanteId: v.comprobante_id,
           code: docCode(v), type: docTipo(v),
           cliente: v.cliente_nombre || 'Cliente varios',
-          fecha: fechaCorta(v.fecha),
+          fecha: fechaCorta(v.fecha), fechaOrden: v.fecha,
           estado: esAnulada ? 'neutral' : (v.estado_sunat === 'aceptado' ? 'success' : v.estado_sunat === 'rechazado' ? 'danger' : v.tipo_comprobante ? 'warning' : 'info'),
           estadoTxt: esAnulada ? 'Anulada' : (v.tipo_comprobante ? (ESTADO_SUNAT_LABEL[v.estado_sunat] || v.estado_documento) : 'Recibo interno'),
           total: money(v.total)
         };
       });
-      document.getElementById('ventasBody').innerHTML = REAL.ventasView.map(function (v, i) {
+      var filasVentas = REAL.ventasView.map(function (v, i) {
         var acciones = '<button data-detail="ventas-real" data-idx="' + i + '" title="Ver detalle"><svg class="icon" style="width:13px;height:13px"><use href="#i-doc"/></svg></button>';
         acciones += v.comprobanteId
           ? '<button data-doc-pdf="' + v.comprobanteId + '" data-doc-codigo="' + esc(v.code) + '" title="Descargar PDF"><svg class="icon" style="width:13px;height:13px"><use href="#i-download"/></svg></button>' +
             '<button data-doc-ticket="' + v.comprobanteId + '" data-doc-codigo="' + esc(v.code) + '" title="Imprimir ticket"><svg class="icon" style="width:13px;height:13px"><use href="#i-print"/></svg></button>'
           : '<button data-recibo-imprimir="' + v.ventaId + '" title="Imprimir recibo"><svg class="icon" style="width:13px;height:13px"><use href="#i-print"/></svg></button>';
-        return '<tr data-idx="' + i + '" data-type="' + esc(v.type) + '" data-search="' + esc((v.code + ' ' + v.cliente).toLowerCase()) + '" data-row-venta="ventas-real" style="cursor:pointer">' +
-          '<td class="doc-cell"><div class="code">' + esc(v.code) + '</div><div class="type">' + esc(v.type) + '</div></td>' +
-          '<td>' + esc(v.cliente) + '</td><td>' + esc(v.fecha) + '</td>' +
-          '<td><span class="pill ' + v.estado + '">' + esc(v.estadoTxt) + '</span></td>' +
-          '<td class="num">' + esc(v.total) + '</td>' +
-          '<td><div class="row-actions">' + acciones + '</div></td></tr>';
-      }).join('');
+        return {
+          fechaOrden: v.fechaOrden,
+          html: '<tr data-idx="' + i + '" data-type="' + esc(v.type) + '" data-search="' + esc((v.code + ' ' + v.cliente).toLowerCase()) + '" data-row-venta="ventas-real" style="cursor:pointer">' +
+            '<td class="doc-cell"><div class="code">' + esc(v.code) + '</div><div class="type">' + esc(v.type) + '</div></td>' +
+            '<td>' + esc(v.cliente) + '</td><td>' + esc(v.fecha) + '</td>' +
+            '<td><span class="pill ' + v.estado + '">' + esc(v.estadoTxt) + '</span></td>' +
+            '<td class="num">' + esc(v.total) + '</td>' +
+            '<td><div class="row-actions">' + acciones + '</div></td></tr>'
+        };
+      });
+
+      // Una cotización es una venta en borrador que todavía no se
+      // confirma — se muestra en la misma lista de Ventas en vez de tener
+      // una sección aparte, con "Confirmar" ahí mismo (genera la venta
+      // real). Solo las que todavía pueden actuarse (borrador/enviada);
+      // una ya confirmada existe como venta real y aparece por ese lado.
+      REAL.cotizacionesView = REAL.cotizaciones.filter(function (c) {
+        return c.estado === 'borrador' || c.estado === 'enviada';
+      });
+      var filasCotizaciones = REAL.cotizacionesView.map(function (c, i) {
+        var badge = COTIZACION_BADGE[c.estado] || { label: c.estado, tone: 'neutral' };
+        return {
+          fechaOrden: c.fecha_cotizacion,
+          html: '<tr data-idx="' + i + '" data-type="Cotización" data-search="' + esc((codigo(c.id) + ' ' + (c.cliente_nombre || '')).toLowerCase()) + '" data-row-venta="cotizacion-real" style="cursor:pointer">' +
+            '<td class="doc-cell"><div class="code">' + codigo(c.id) + '</div><div class="type">Cotización</div></td>' +
+            '<td>' + esc(c.cliente_nombre || 'Cliente varios') + '</td><td>' + fechaCorta(c.fecha_cotizacion) + '</td>' +
+            '<td><span class="pill ' + badge.tone + '">' + badge.label + '</span></td>' +
+            '<td class="num">' + money(c.total) + '</td>' +
+            '<td><div class="row-actions">' +
+            '<button data-cot-ver="' + c.id + '" title="Ver / editar"><svg class="icon" style="width:13px;height:13px"><use href="#i-doc"/></svg></button>' +
+            '<button data-cot-confirmar="' + c.id + '" title="Confirmar (genera la venta)"><svg class="icon" style="width:13px;height:13px"><use href="#i-sales"/></svg></button>' +
+            '<button data-cot-rechazar="' + c.id + '" title="Rechazar"><svg class="icon" style="width:13px;height:13px"><use href="#i-x"/></svg></button>' +
+            '</div></td></tr>'
+        };
+      });
+
+      document.getElementById('ventasBody').innerHTML = filasVentas.concat(filasCotizaciones)
+        .sort(function (a, b) { return new Date(b.fechaOrden) - new Date(a.fechaOrden); })
+        .map(function (f) { return f.html; })
+        .join('');
       applyToolbarFilter('ventas');
     }
 
@@ -3006,35 +3028,6 @@
     };
     function codigoPedido(id) { return 'PED-' + String(id).padStart(6, '0'); }
 
-    function renderCotizaciones() {
-      var tbody = document.getElementById('cotizacionesBody');
-      if (!tbody) return;
-      if (!(esFs() && REAL.cargado)) {
-        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-faint)">Cambia a Ferretería San Martín para ver cotizaciones reales.</td></tr>';
-        return;
-      }
-      if (!REAL.cotizaciones.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-faint)">Todavía no creaste ninguna cotización.</td></tr>';
-        applyToolbarFilter('cotizaciones');
-        return;
-      }
-      tbody.innerHTML = REAL.cotizaciones.map(function (c) {
-        var badge = COTIZACION_BADGE[c.estado] || { label: c.estado, tone: 'neutral' };
-        var puedeActuar = c.estado === 'borrador' || c.estado === 'enviada';
-        return '<tr data-cot-fila="' + c.id + '" style="cursor:pointer" data-status="' + c.estado + '" data-search="' + esc((codigo(c.id) + ' ' + (c.cliente_nombre || '')).toLowerCase()) + '">' +
-          '<td class="doc-cell"><div class="code">' + codigo(c.id) + '</div></td>' +
-          '<td>' + esc(c.cliente_nombre || 'Cliente varios') + '</td>' +
-          '<td>' + (c.fecha_vencimiento ? new Date(c.fecha_vencimiento).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }) : '—') + '</td>' +
-          '<td><span class="pill ' + badge.tone + '">' + badge.label + '</span></td>' +
-          '<td class="num">' + money(c.total) + '</td>' +
-          '<td><div class="row-actions">' +
-          '<button data-cot-ver="' + c.id + '" title="Ver detalle"><svg class="icon" style="width:13px;height:13px"><use href="#i-doc"/></svg></button>' +
-          (puedeActuar ? '<button data-cot-confirmar="' + c.id + '" title="Confirmar (genera la venta)"><svg class="icon" style="width:13px;height:13px"><use href="#i-sales"/></svg></button>' : '') +
-          (puedeActuar ? '<button data-cot-rechazar="' + c.id + '" title="Rechazar"><svg class="icon" style="width:13px;height:13px"><use href="#i-x"/></svg></button>' : '') +
-          '</div></td></tr>';
-      }).join('');
-      applyToolbarFilter('cotizaciones');
-    }
     function codigo(id) { return 'COT-' + String(id).padStart(6, '0'); }
 
     function renderPedidos() {
@@ -5228,20 +5221,6 @@
       );
     }
 
-    document.getElementById('cotizacionesBody').addEventListener('click', function (e) {
-      var btn = e.target.closest('button[data-cot-ver], button[data-cot-confirmar], button[data-cot-rechazar]');
-      if (btn) {
-        if (btn.hasAttribute('data-cot-ver')) verDetalleCotizacion(btn.getAttribute('data-cot-ver'));
-        else if (btn.hasAttribute('data-cot-confirmar')) confirmarCotizacion(btn.getAttribute('data-cot-confirmar'));
-        else if (btn.hasAttribute('data-cot-rechazar')) rechazarCotizacion(btn.getAttribute('data-cot-rechazar'));
-        return;
-      }
-      // Clic en cualquier parte de la fila (no en un botón de acción) abre
-      // el mismo detalle — igual que el ícono de "Ver detalle".
-      var fila = e.target.closest('tr[data-cot-fila]');
-      if (fila) verDetalleCotizacion(fila.getAttribute('data-cot-fila'));
-    });
-
     document.getElementById('pedidosBody').addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-ped-ver], button[data-ped-confirmar], button[data-ped-facturar], button[data-ped-cancelar]');
       if (btn) {
@@ -6120,7 +6099,7 @@
             await cargarReales();
             toast('Guardado como cotización — no se descontó stock ni se emitió comprobante.', 'success');
             var groupVentas = navGroups.filter(function (g) { return g.getAttribute('data-view') === 'ventas'; })[0];
-            selectView('cotizaciones', groupVentas);
+            selectView('ventas', groupVentas);
           } catch (err) {
             toast(err.message, 'error');
           } finally {
