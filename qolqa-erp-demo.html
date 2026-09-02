@@ -504,6 +504,11 @@
   }
   .items-table .col-num { text-align: right; }
   .items-table input[type="number"] { text-align: right; }
+  /* Sin flechitas de incrementar/decrementar en cantidad, precio y
+     descuento por línea — se escriben a mano, no se usan esas flechas. */
+  .items-table input[type="number"]::-webkit-inner-spin-button,
+  .items-table input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .items-table input[type="number"] { -moz-appearance: textfield; }
   .doc-add-row { padding: 8px 6px; }
   .doc-footer {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
