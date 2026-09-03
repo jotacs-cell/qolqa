@@ -447,7 +447,7 @@ function BrowserMockup({
 
 function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden bg-slate-50 pt-28 pb-20 sm:pt-36 sm:pb-24">
+    <section id="top" className="relative overflow-hidden bg-slate-50 pt-28 pb-12 sm:pt-36 sm:pb-14">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10"
@@ -529,7 +529,7 @@ function Hero() {
 
 function TrustBar() {
   return (
-    <section className="border-y border-slate-100 bg-white py-8">
+    <section className="border-y border-slate-100 bg-white py-6">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {TRUST_ITEMS.map((item) => (
