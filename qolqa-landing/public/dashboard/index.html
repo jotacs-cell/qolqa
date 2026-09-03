@@ -3751,7 +3751,7 @@
             '<td>' + productoPickerHtml(l.producto_id) + '</td>' +
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
             '<td class="col-num"><input class="linea-precio" type="number" min="0" step="0.01" value="' + l.precio_unitario + '"></td>' +
-            '<td class="col-num mono">' + money(subtotal) + '</td>' +
+            '<td class="col-num mono linea-subtotal">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -3762,6 +3762,17 @@
       function refrescarLineas() {
         document.getElementById('lineasCompra').innerHTML = filasHtml();
         wireLineas();
+        actualizarTotal();
+      }
+      // Igual que en Nueva venta: solo parcha el subtotal de ESA línea y el
+      // total general, sin reconstruir el <tbody> — así el input no pierde
+      // el foco mientras el usuario sigue escribiendo la cantidad/precio.
+      function actualizarSubtotalLinea(i) {
+        var l = lineas[i];
+        var subtotal = Number(l.precio_unitario || 0) * Number(l.cantidad || 0);
+        var fila = document.querySelector('#lineasCompra tr[data-linea="' + i + '"]');
+        var celdaSubtotal = fila && fila.querySelector('.linea-subtotal');
+        if (celdaSubtotal) celdaSubtotal.textContent = money(subtotal);
         actualizarTotal();
       }
       function actualizarTotal() {
@@ -3816,10 +3827,10 @@
           });
         });
         document.querySelectorAll('.linea-cantidad').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
         document.querySelectorAll('.linea-precio').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].precio_unitario = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].precio_unitario = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
       }
 
@@ -4014,7 +4025,7 @@
             '<td>' + productoPickerHtml(l.producto_id) + '</td>' +
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
             '<td class="col-num"><input class="linea-precio" type="number" min="0" step="0.01" value="' + l.precio_unitario + '"></td>' +
-            '<td class="col-num mono">' + money(subtotal) + '</td>' +
+            '<td class="col-num mono linea-subtotal">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -4025,6 +4036,14 @@
       function refrescarLineas() {
         document.getElementById('lineasOC').innerHTML = filasHtml();
         wireLineas();
+        actualizarTotal();
+      }
+      function actualizarSubtotalLinea(i) {
+        var l = lineas[i];
+        var subtotal = Number(l.precio_unitario || 0) * Number(l.cantidad || 0);
+        var fila = document.querySelector('#lineasOC tr[data-linea="' + i + '"]');
+        var celdaSubtotal = fila && fila.querySelector('.linea-subtotal');
+        if (celdaSubtotal) celdaSubtotal.textContent = money(subtotal);
         actualizarTotal();
       }
       function actualizarTotal() {
@@ -4080,10 +4099,10 @@
           });
         });
         document.querySelectorAll('.linea-cantidad').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
         document.querySelectorAll('.linea-precio').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].precio_unitario = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].precio_unitario = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
       }
 
@@ -5081,7 +5100,7 @@
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
             '<td class="col-num mono">' + (p ? money(p.precio_venta) : '—') + '</td>' +
             '<td class="col-num"><input class="linea-descuento" type="number" min="0" max="100" value="' + l.descuento_pct + '"></td>' +
-            '<td class="col-num mono">' + money(subtotal) + '</td>' +
+            '<td class="col-num mono linea-subtotal">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -5096,6 +5115,15 @@
       function refrescarLineas() {
         document.getElementById('lineasPed').innerHTML = filasHtml();
         wireLineas();
+        actualizarTotal();
+      }
+      function actualizarSubtotalLinea(i) {
+        var l = lineas[i];
+        var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
+        var subtotal = p ? Number(p.precio_venta) * Number(l.cantidad || 0) * (1 - Number(l.descuento_pct || 0) / 100) : 0;
+        var fila = document.querySelector('#lineasPed tr[data-linea="' + i + '"]');
+        var celdaSubtotal = fila && fila.querySelector('.linea-subtotal');
+        if (celdaSubtotal) celdaSubtotal.textContent = money(subtotal);
         actualizarTotal();
       }
       function actualizarTotal() {
@@ -5160,10 +5188,10 @@
           wireProductoPicker(scopeEl, function (id) { lineas[i].producto_id = id; refrescarLineas(); });
         });
         document.querySelectorAll('.linea-cantidad').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
         document.querySelectorAll('.linea-descuento').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].descuento_pct = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].descuento_pct = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
       }
 
@@ -6231,7 +6259,7 @@ function openNuevaCotizacion(cotizacionExistente, prefiltros) {
             '<td class="col-num"><input class="linea-cantidad" type="number" min="1" value="' + l.cantidad + '"></td>' +
             '<td class="col-num mono">' + (p ? money(p.precio_venta) : '—') + '</td>' +
             '<td class="col-num"><input class="linea-descuento" type="number" min="0" max="100" value="' + l.descuento_pct + '"></td>' +
-            '<td class="col-num mono">' + money(subtotal) + '</td>' +
+            '<td class="col-num mono linea-subtotal">' + money(subtotal) + '</td>' +
             '<td>' + (lineas.length > 1 ? '<button type="button" class="linea-quitar" title="Quitar" style="border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px">&times;</button>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -6246,6 +6274,15 @@ function openNuevaCotizacion(cotizacionExistente, prefiltros) {
       function refrescarLineas() {
         document.getElementById('lineasCot').innerHTML = filasHtml();
         wireLineas();
+        actualizarTotal();
+      }
+      function actualizarSubtotalLinea(i) {
+        var l = lineas[i];
+        var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
+        var subtotal = p ? Number(p.precio_venta) * Number(l.cantidad || 0) * (1 - Number(l.descuento_pct || 0) / 100) : 0;
+        var fila = document.querySelector('#lineasCot tr[data-linea="' + i + '"]');
+        var celdaSubtotal = fila && fila.querySelector('.linea-subtotal');
+        if (celdaSubtotal) celdaSubtotal.textContent = money(subtotal);
         actualizarTotal();
       }
       function actualizarTotal() {
@@ -6304,10 +6341,10 @@ function openNuevaCotizacion(cotizacionExistente, prefiltros) {
           wireProductoPicker(scopeEl, function (id) { lineas[i].producto_id = id; refrescarLineas(); });
         });
         document.querySelectorAll('.linea-cantidad').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].cantidad = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
         document.querySelectorAll('.linea-descuento').forEach(function (inp, i) {
-          inp.addEventListener('input', function () { lineas[i].descuento_pct = Number(inp.value) || 0; refrescarLineas(); });
+          inp.addEventListener('input', function () { lineas[i].descuento_pct = Number(inp.value) || 0; actualizarSubtotalLinea(i); });
         });
       }
 
