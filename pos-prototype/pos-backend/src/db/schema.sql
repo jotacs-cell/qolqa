@@ -728,6 +728,24 @@ CREATE INDEX idx_comprobantes_company ON comprobantes_electronicos (company_id);
 -- Cuentas por cobrar pueda marcar una deuda como vencida.
 ALTER TABLE ventas ADD COLUMN fecha_vencimiento DATE;
 
+-- Cobros parciales de ventas a crédito (ver migración
+-- 015_pagos_venta.sql). 'parcial' se suma al enum ya existente
+-- (pendiente/pagada) y pagos_venta lleva un renglón por cada abono —
+-- se compara SUM(pagos_venta.monto) contra ventas.total para decidir
+-- si una venta queda pendiente/parcial/pagada.
+ALTER TYPE estado_pago_compra ADD VALUE 'parcial';
+
+CREATE TABLE pagos_venta (
+    id          BIGSERIAL PRIMARY KEY,
+    venta_id    BIGINT NOT NULL REFERENCES ventas(id) ON DELETE CASCADE,
+    monto       NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+    metodo_pago metodo_pago_venta NOT NULL,
+    usuario_id  BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
+    creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_pagos_venta_venta_id ON pagos_venta (venta_id);
+
 -- ---------------------------------------------------------------------
 -- trigger genérico: actualizar "actualizado_en"
 -- ---------------------------------------------------------------------

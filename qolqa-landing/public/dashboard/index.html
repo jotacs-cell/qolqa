@@ -471,6 +471,7 @@
   }
   .pago-ribbon.pagado { background: var(--success); }
   .pago-ribbon.pendiente { background: var(--warning); }
+  .pago-ribbon.parcial { background: var(--info); }
 
   /* ---- Formularios grandes (Nueva venta / Nueva cotización), estilo Odoo ---- */
   .doc-topbar {
@@ -1794,9 +1795,9 @@
       }
       var hoyISO = new Date().toISOString().slice(0, 10);
       var vencidas = REAL.ventas.filter(function (v) {
-        return v.estado_pago === 'pendiente' && v.estado_documento !== 'anulada' && v.fecha_vencimiento && v.fecha_vencimiento.slice(0, 10) < hoyISO;
+        return (v.estado_pago === 'pendiente' || v.estado_pago === 'parcial') && v.estado_documento !== 'anulada' && v.fecha_vencimiento && v.fecha_vencimiento.slice(0, 10) < hoyISO;
       });
-      var totalVencido = vencidas.reduce(function (s, v) { return s + Number(v.total); }, 0);
+      var totalVencido = vencidas.reduce(function (s, v) { return s + (Number(v.total) - Number(v.total_pagado || 0)); }, 0);
       var html = '<div class="card" id="accionesPendientesCard"><div class="card-head"><h3>Acciones pendientes</h3></div><div class="card-body">' +
         (vencidas.length
           ? '<button type="button" class="list-row" data-goto-dash="cuentas-por-cobrar" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit">' +
@@ -4354,7 +4355,9 @@
         tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink-faint)">Cambia a Ferretería San Martín para ver cuentas por cobrar reales.</td></tr>';
         return;
       }
-      var pendientes = REAL.ventas.filter(function (v) { return v.estado_pago === 'pendiente' && v.estado_documento !== 'anulada'; });
+      var pendientes = REAL.ventas.filter(function (v) {
+        return (v.estado_pago === 'pendiente' || v.estado_pago === 'parcial') && v.estado_documento !== 'anulada';
+      });
       if (!pendientes.length) {
         tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink-faint)">No hay ventas a crédito pendientes de cobro.</td></tr>';
         return;
@@ -4365,12 +4368,15 @@
         var vencimientoTxt = v.fecha_vencimiento
           ? new Date(v.fecha_vencimiento).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
           : '—';
+        var saldo = Number(v.total) - Number(v.total_pagado || 0);
         return '<tr>' +
           '<td class="mono">' + esc(docCode(v)) + '</td>' +
           '<td>' + esc(v.cliente_nombre || 'Cliente varios') + '</td>' +
           '<td>' + fechaCorta(v.fecha) + '</td>' +
           '<td>' + esc(vencimientoTxt) + (vencida ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') + '</td>' +
-          '<td class="num">' + money(v.total) + '</td>' +
+          '<td class="num">' + money(saldo) +
+            (v.estado_pago === 'parcial' ? ' <span class="pill warning" style="font-size:10px;padding:2px 7px;margin-left:4px" title="Total S/ ' + Number(v.total).toFixed(2) + ' — ya cobrado S/ ' + Number(v.total_pagado).toFixed(2) + '">PAGO PARCIAL</span>' : '') +
+          '</td>' +
           '<td><button type="button" class="btn-ghost" data-cobrar-venta="' + v.id + '" style="font-size:12px;padding:4px 10px">Cobrar</button></td>' +
           '</tr>';
       }).join('');
@@ -4379,17 +4385,59 @@
     document.getElementById('cuentasCobrarBody').addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-cobrar-venta]');
       if (!btn) return;
-      cobrarVenta(btn.getAttribute('data-cobrar-venta'));
+      abrirCobroVenta(btn.getAttribute('data-cobrar-venta'));
     });
 
-    async function cobrarVenta(id) {
-      try {
-        await posFetch('/ventas/' + id + '/marcar-pagada', { method: 'PATCH' });
-        toast('Venta cobrada.', 'success');
-        await cargarReales();
-      } catch (err) {
-        toast(err.message, 'error');
-      }
+    /* Registrar un abono (parcial o total) contra una venta a crédito —
+     * reemplaza el viejo "marcar como pagada de un tirón": el monto lo
+     * decide quien cobra, nunca puede pasarse del saldo pendiente, y el
+     * backend decide solo si la venta queda 'parcial' o 'pagada'. */
+    function abrirCobroVenta(id) {
+      var v = REAL.ventas.filter(function (x) { return String(x.id) === String(id); })[0];
+      if (!v) return;
+      var saldo = Number(v.total) - Number(v.total_pagado || 0);
+      openModal(
+        '<div class="modal-head"><div><h3 id="modalTitle">Registrar cobro</h3><p>' + esc(docCode(v)) + ' — ' + esc(v.cliente_nombre || 'Cliente varios') + '</p></div>' +
+        '<button class="modal-close" data-close aria-label="Cerrar">&times;</button></div>' +
+        '<div class="modal-body"><form id="formCobroVenta" novalidate>' +
+        '<div class="mini-row"><span>Total de la venta</span><span class="mono">' + money(v.total) + '</span></div>' +
+        '<div class="mini-row"><span>Ya cobrado</span><span class="mono">' + money(v.total_pagado || 0) + '</span></div>' +
+        '<div class="mini-row"><span>Saldo pendiente</span><span class="mono"><b>' + money(saldo) + '</b></span></div>' +
+        '<div class="field-2col" style="margin-top:12px">' +
+        '<div class="field" data-field="monto"><label>Monto a cobrar (S/)</label><input name="monto" type="number" step="0.01" min="0.01" max="' + saldo.toFixed(2) + '" value="' + saldo.toFixed(2) + '"><span class="err">Ingresa un monto válido (máx. el saldo pendiente).</span></div>' +
+        '<div class="field" data-field="metodo_pago"><label>Método de pago</label><select name="metodo_pago">' +
+        ['efectivo', 'tarjeta', 'yape', 'plin', 'transferencia', 'mixto'].map(function (m) {
+          return '<option value="' + m + '"' + (v.metodo_pago === m ? ' selected' : '') + '>' + m.charAt(0).toUpperCase() + m.slice(1) + '</option>';
+        }).join('') +
+        '</select></div>' +
+        '</div>' +
+        '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new">Registrar cobro</button></div>' +
+        '</form></div>'
+      );
+      var form = document.getElementById('formCobroVenta');
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        clearErrors(form);
+        var monto = Number(form.monto.value);
+        if (!(monto > 0) || monto > saldo + 0.01) {
+          fieldError(form.querySelector('[data-field=monto]'), 'Ingresa un monto válido (máx. el saldo pendiente).');
+          return;
+        }
+        var btn = form.querySelector('button[type=submit]');
+        btn.disabled = true;
+        try {
+          await posFetch('/ventas/' + id + '/pagos', {
+            method: 'POST',
+            body: JSON.stringify({ monto: monto, metodo_pago: form.metodo_pago.value }),
+          });
+          closeModal();
+          toast('Cobro registrado.', 'success');
+          await cargarReales();
+        } catch (err) {
+          btn.disabled = false;
+          toast(err.message, 'error');
+        }
+      });
     }
 
     function renderCuentasPorPagar() {
@@ -5691,9 +5739,11 @@
         // esté aceptado, igual que en cualquier sistema de facturación real.
         var puedeNotaCredito = aceptadoPorSunat && v.estado_documento !== 'anulada';
 
+        var ribbonClase = v.estado_pago === 'pagada' ? 'pagado' : (v.estado_pago === 'parcial' ? 'parcial' : 'pendiente');
+        var ribbonTexto = v.estado_pago === 'pagada' ? 'PAGADO' : (v.estado_pago === 'parcial' ? 'PAGO PARCIAL' : 'PENDIENTE');
         document.getElementById('ventaDetalleContenido').innerHTML =
           (comp && v.estado_documento !== 'anulada'
-            ? '<div class="pago-ribbon ' + (v.estado_pago === 'pagada' ? 'pagado' : 'pendiente') + '">' + (v.estado_pago === 'pagada' ? 'PAGADO' : 'PENDIENTE') + '</div>'
+            ? '<div class="pago-ribbon ' + ribbonClase + '">' + ribbonTexto + '</div>'
             : '') +
           '<div class="doc-topbar"><div class="doc-title"><h3 id="ventaDetalleTitulo">' + esc(codigoDoc) + '</h3><p>' + esc(tipoDoc) + '</p></div>' +
           // padding-right: dentro de este mismo div (no del contenedor) para
@@ -5729,8 +5779,11 @@
           '<div class="mini-row"><span>Método de pago</span><span>' + esc(v.metodo_pago.charAt(0).toUpperCase() + v.metodo_pago.slice(1)) + '</span></div>' +
           (v.fecha_vencimiento
             ? '<div class="mini-row"><span>Vencimiento</span><span>' + esc(new Date(v.fecha_vencimiento).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })) +
-              (v.estado_pago === 'pendiente' && v.fecha_vencimiento.slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') +
+              ((v.estado_pago === 'pendiente' || v.estado_pago === 'parcial') && v.fecha_vencimiento.slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="pill danger" style="font-size:10px;padding:2px 7px;margin-left:4px">VENCIDA</span>' : '') +
               '</span></div>'
+            : '') +
+          ((v.estado_pago === 'pendiente' || v.estado_pago === 'parcial') && v.estado_documento !== 'anulada'
+            ? '<div class="mini-row"><span>Saldo pendiente</span><span class="mono"><b>' + money(Number(v.total) - Number(v.total_pagado || 0)) + '</b> <button type="button" class="btn-ghost" id="btnDetRegistrarCobro" style="font-size:11px;padding:2px 9px;margin-left:6px">Registrar cobro</button></span></div>'
             : '') +
           '</div>' +
           '</div>' +
@@ -5806,6 +5859,10 @@
         }
         if (puedeNotaCredito) {
           document.getElementById('btnDetNotaCredito').addEventListener('click', function () { abrirNotaCreditoDesdeDetalle(comp.id, codigoDoc); });
+        }
+        var btnRegistrarCobro = document.getElementById('btnDetRegistrarCobro');
+        if (btnRegistrarCobro) {
+          btnRegistrarCobro.addEventListener('click', function () { abrirCobroVenta(v.id); });
         }
       } catch (err) {
         toast(err.message, 'error');
@@ -5963,8 +6020,8 @@
       var cliente = REAL.clientes.filter(function (c) { return String(c.id) === String(clienteId); })[0];
       if (!cliente || !Number(cliente.limite_credito)) return true;
       var deudaActual = REAL.ventas
-        .filter(function (v) { return String(v.cliente_id) === String(clienteId) && v.estado_pago === 'pendiente'; })
-        .reduce(function (s, v) { return s + Number(v.total); }, 0);
+        .filter(function (v) { return String(v.cliente_id) === String(clienteId) && (v.estado_pago === 'pendiente' || v.estado_pago === 'parcial'); })
+        .reduce(function (s, v) { return s + (Number(v.total) - Number(v.total_pagado || 0)); }, 0);
       var deudaProyectada = deudaActual + Number(montoNuevo);
       if (deudaProyectada <= Number(cliente.limite_credito)) return true;
       return confirmarAccion({

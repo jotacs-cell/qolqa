@@ -14,6 +14,8 @@ router.get('/', ctrl.listar);
 router.get('/:id', ctrl.obtener);
 router.patch('/:id/anular', exigirPermiso('anularOEmitirNotaCredito'), ctrl.anular);
 router.patch('/:id/marcar-pagada', ctrl.marcarPagada);
+router.get('/:id/pagos', ctrl.listarPagos);
+router.post('/:id/pagos', ctrl.registrarPago);
 router.get('/:id/notas', ctrl.listarNotas);
 router.post('/:id/notas', ctrl.agregarNota);
 

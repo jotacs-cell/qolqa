@@ -101,7 +101,8 @@ async function listar(req, res) {
   const { rows: data } = await pool.query(
     `SELECT v.id, v.fecha, v.total, v.metodo_pago, v.estado_documento, v.estado_pago, v.fecha_vencimiento, v.cliente_id,
             c.id AS comprobante_id, c.tipo_comprobante, c.serie, c.correlativo, c.estado_sunat,
-            cl.razon_social_o_nombre AS cliente_nombre
+            cl.razon_social_o_nombre AS cliente_nombre,
+            COALESCE((SELECT SUM(monto) FROM pagos_venta WHERE venta_id = v.id), 0) AS total_pagado
        FROM ventas v
        LEFT JOIN comprobantes_electronicos c ON c.venta_id = v.id
        LEFT JOIN clientes cl ON cl.id = v.cliente_id
@@ -238,18 +239,103 @@ async function anular(req, res) {
   res.json(resultado);
 }
 
-/** Cobrar una venta a crédito (fiado) — mismo patrón que compras.controller.js#marcarPagada. */
+/**
+ * Cobra el SALDO COMPLETO restante de una venta a crédito de un solo tiro
+ * (atajo que usa Cuentas por cobrar para "marcar como pagada" sin pedir
+ * monto) — registra igual un renglón en pagos_venta con el método de pago
+ * que ya trae la venta, para que el historial de cobros nunca quede
+ * desalineado del estado. Para un abono PARCIAL usar registrarPago.
+ */
 async function marcarPagada(req, res) {
-  const { rows } = await pool.query(
-    `UPDATE ventas SET estado_pago = 'pagada' WHERE id = $1 AND company_id = $2 AND estado_documento != 'anulada' RETURNING id, estado_pago`,
-    [req.params.id, req.usuario.companyId]
-  );
-  if (!rows[0]) throw new ApiError(404, 'NO_ENCONTRADO', 'Venta no encontrada o ya anulada.');
+  const resultado = await conTransaccion(async (client) => {
+    const { rows: ventaRows } = await client.query(
+      `SELECT id, total, metodo_pago, estado_pago,
+              COALESCE((SELECT SUM(monto) FROM pagos_venta WHERE venta_id = ventas.id), 0) AS total_pagado
+         FROM ventas WHERE id = $1 AND company_id = $2 AND estado_documento != 'anulada' FOR UPDATE`,
+      [req.params.id, req.usuario.companyId]
+    );
+    const venta = ventaRows[0];
+    if (!venta) throw new ApiError(404, 'NO_ENCONTRADO', 'Venta no encontrada o ya anulada.');
+    const saldoPendiente = Number(venta.total) - Number(venta.total_pagado);
+    if (saldoPendiente > 0) {
+      await client.query(
+        `INSERT INTO pagos_venta (venta_id, monto, metodo_pago, usuario_id) VALUES ($1, $2, $3, $4)`,
+        [venta.id, saldoPendiente.toFixed(2), venta.metodo_pago, req.usuario.id]
+      );
+    }
+    const { rows } = await client.query(
+      `UPDATE ventas SET estado_pago = 'pagada' WHERE id = $1 RETURNING id, estado_pago`,
+      [venta.id]
+    );
+    return rows[0];
+  });
   await auditoria.registrar({
     companyId: req.usuario.companyId, usuarioId: req.usuario.id,
-    accion: 'venta.marcar_pagada', entidad: 'venta', entidadId: rows[0].id,
+    accion: 'venta.marcar_pagada', entidad: 'venta', entidadId: resultado.id,
   });
-  res.json(rows[0]);
+  res.json(resultado);
+}
+
+/** Historial de abonos de una venta a crédito, del más antiguo al más reciente. */
+async function listarPagos(req, res) {
+  await ventaDeLaEmpresa(req.params.id, req.usuario.companyId);
+  const { rows } = await pool.query(
+    `SELECT pv.id, pv.monto, pv.metodo_pago, pv.creado_en, u.nombre AS usuario_nombre
+       FROM pagos_venta pv JOIN usuarios u ON u.id = pv.usuario_id
+      WHERE pv.venta_id = $1
+      ORDER BY pv.creado_en ASC`,
+    [req.params.id]
+  );
+  res.json({ data: rows });
+}
+
+/**
+ * Registra un abono — parcial o que termina de cubrir el saldo — contra
+ * una venta a crédito. A diferencia de marcarPagada (todo el saldo de un
+ * tiro), acá el monto lo decide quien cobra, y nunca puede pasarse del
+ * saldo pendiente (no se acepta sobre-pago). El estado resultante se
+ * calcula comparando la suma de TODOS los abonos contra ventas.total:
+ * 'parcial' si todavía falta, 'pagada' si con este abono se cubre.
+ */
+async function registrarPago(req, res) {
+  const monto = Number(req.body.monto);
+  const metodoPago = req.body.metodo_pago;
+  if (!(monto > 0)) throw new ApiError(422, 'DATOS_INCOMPLETOS', 'monto debe ser mayor a 0.');
+  if (!metodoPago) throw new ApiError(422, 'DATOS_INCOMPLETOS', 'metodo_pago es requerido.');
+
+  const resultado = await conTransaccion(async (client) => {
+    const { rows: ventaRows } = await client.query(
+      `SELECT id, total, estado_pago,
+              COALESCE((SELECT SUM(monto) FROM pagos_venta WHERE venta_id = ventas.id), 0) AS total_pagado
+         FROM ventas WHERE id = $1 AND company_id = $2 AND estado_documento != 'anulada' FOR UPDATE`,
+      [req.params.id, req.usuario.companyId]
+    );
+    const venta = ventaRows[0];
+    if (!venta) throw new ApiError(404, 'NO_ENCONTRADO', 'Venta no encontrada o ya anulada.');
+    const saldoPendiente = Number(venta.total) - Number(venta.total_pagado);
+    if (saldoPendiente <= 0) throw new ApiError(409, 'YA_PAGADA', 'Esta venta ya no tiene saldo pendiente.');
+    if (monto > saldoPendiente + 0.01) {
+      throw new ApiError(422, 'MONTO_EXCEDE_SALDO', `El monto no puede superar el saldo pendiente (S/ ${saldoPendiente.toFixed(2)}).`);
+    }
+
+    await client.query(
+      `INSERT INTO pagos_venta (venta_id, monto, metodo_pago, usuario_id) VALUES ($1, $2, $3, $4)`,
+      [venta.id, monto.toFixed(2), metodoPago, req.usuario.id]
+    );
+    const totalPagado = Number(venta.total_pagado) + monto;
+    const nuevoEstado = totalPagado >= Number(venta.total) - 0.01 ? 'pagada' : 'parcial';
+    const { rows } = await client.query(
+      `UPDATE ventas SET estado_pago = $2 WHERE id = $1 RETURNING id, estado_pago`,
+      [venta.id, nuevoEstado]
+    );
+    return { ...rows[0], total_pagado: totalPagado, saldo_pendiente: Math.max(0, Number(venta.total) - totalPagado) };
+  });
+
+  await auditoria.registrar({
+    companyId: req.usuario.companyId, usuarioId: req.usuario.id,
+    accion: 'venta.registrar_pago', entidad: 'venta', entidadId: resultado.id, detalle: { monto, metodo_pago: metodoPago },
+  });
+  res.status(201).json(resultado);
 }
 
 /** Confirma que la venta es de esta empresa antes de tocar sus notas —
@@ -290,4 +376,4 @@ async function agregarNota(req, res) {
   res.status(201).json({ ...rows[0], usuario_nombre: req.usuario.nombre });
 }
 
-module.exports = { crear, listar, obtener, anular, marcarPagada, listarNotas, agregarNota };
+module.exports = { crear, listar, obtener, anular, marcarPagada, listarPagos, registrarPago, listarNotas, agregarNota };
