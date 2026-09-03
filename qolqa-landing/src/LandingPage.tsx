@@ -86,7 +86,9 @@ type BentoItem = {
   icon: typeof Receipt;
   title: string;
   description: string;
-  size: "lg" | "md" | "sm";
+  // Grid de 6 columnas: "lg" ocupa la fila completa, "md" va en pareja
+  // (dos por fila) — cualquier otra combinación deja huecos vacíos.
+  size: "lg" | "md";
   image?: string;
   imageAlt?: string;
 };
@@ -119,13 +121,13 @@ const BENTO_ITEMS: BentoItem[] = [
     icon: Contact,
     title: "Clientes",
     description: "Historial de compras y datos de contacto de cada cliente, listos para facturar.",
-    size: "sm",
+    size: "md",
   },
   {
     icon: Boxes,
     title: "Productos",
     description: "Catálogo con precios, códigos y stock mínimo por producto.",
-    size: "sm",
+    size: "md",
   },
   {
     icon: BarChart3,
@@ -578,9 +580,8 @@ function ProblemSection() {
 }
 
 function bentoSizeClasses(size: BentoItem["size"]) {
-  if (size === "lg") return "md:col-span-4";
-  if (size === "md") return "md:col-span-3";
-  return "md:col-span-2";
+  if (size === "lg") return "md:col-span-6";
+  return "md:col-span-3";
 }
 
 function Bento() {
@@ -609,12 +610,20 @@ function Bento() {
                     <BrowserMockup src={item.image} alt={item.imageAlt ?? ""} className="border-slate-100 shadow-none" />
                   </div>
                 )}
-                <div className="flex flex-1 flex-col p-6">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                <div
+                  className={
+                    item.size === "lg" && !item.image
+                      ? "flex flex-1 flex-col gap-4 p-6 sm:flex-row sm:items-center"
+                      : "flex flex-1 flex-col p-6"
+                  }
+                >
+                  <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                     <item.icon className="h-[22px] w-[22px]" strokeWidth={2} />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                  <div className={item.size === "lg" && !item.image ? "mt-0" : "mt-4"}>
+                    <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">{item.description}</p>
+                  </div>
                 </div>
               </div>
             </Reveal>
