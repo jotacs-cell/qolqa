@@ -318,7 +318,7 @@ function Logo() {
       <img
         src="/logo-facturapos.png"
         alt="FacturasPOS"
-        className="h-16 w-auto object-contain"
+        className="h-20 w-auto object-contain"
       />
     </div>
   );
@@ -1103,7 +1103,7 @@ function Footer() {
             <img
               src="/logo-facturapos.png"
               alt="FacturasPOS"
-              className="h-9 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
             <p className="mt-4 text-sm text-slate-400">
               Ventas, inventario y facturación electrónica para negocios peruanos.
