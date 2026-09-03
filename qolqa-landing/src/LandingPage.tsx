@@ -605,12 +605,9 @@ function Bento() {
             >
               <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated">
                 {item.image && (
-                  <img
-                    src={item.image}
-                    alt={item.imageAlt}
-                    loading="lazy"
-                    className="h-44 w-full border-b border-slate-100 object-cover object-top"
-                  />
+                  <div className="border-b border-slate-100 p-4 pb-0">
+                    <BrowserMockup src={item.image} alt={item.imageAlt ?? ""} className="border-slate-100 shadow-none" />
+                  </div>
                 )}
                 <div className="flex flex-1 flex-col p-6">
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
