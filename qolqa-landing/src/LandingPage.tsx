@@ -445,6 +445,57 @@ function BrowserMockup({
   );
 }
 
+type GlowBlob = {
+  top: string;
+  size: number;
+  tone: "blue" | "emerald" | "amber";
+  duration: string;
+  delay: string;
+};
+
+const GLOW_TONE_CLASSES: Record<GlowBlob["tone"], string> = {
+  blue: "bg-blue-400/25",
+  emerald: "bg-emerald-400/20",
+  amber: "bg-amber-400/20",
+};
+
+/**
+ * Resplandores ambientales, puramente decorativos, para los márgenes
+ * laterales en pantallas muy anchas (2xl: 1536px+). Se optó por manchas
+ * de color difuminadas en vez de íconos o fotos: no hay fotografías de
+ * stock reales disponibles para usar (habría sido contenido genérico
+ * inventado) y los íconos sueltos no combinaban con el resto del diseño.
+ * Un resplandor abstracto no necesita "representar" nada puntual, así
+ * que siempre encaja. Invisible por debajo de 2xl para no competir con
+ * el contenido real en laptops/tablets.
+ */
+function SideGlow({ side, blobs }: { side: "left" | "right"; blobs: GlowBlob[] }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute top-0 hidden h-full w-40 overflow-hidden 2xl:block ${
+        side === "left" ? "left-0" : "right-0"
+      }`}
+    >
+      {blobs.map(({ top, size, tone, duration, delay }, i) => (
+        <div
+          key={i}
+          className={`blob-pulse absolute left-1/2 rounded-full blur-3xl ${GLOW_TONE_CLASSES[tone]}`}
+          style={
+            {
+              top,
+              width: size,
+              height: size,
+              "--blob-duration": duration,
+              "--blob-delay": delay,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 function Hero() {
   return (
     <section id="top" className="relative overflow-hidden bg-slate-50 pt-28 pb-12 sm:pt-36 sm:pb-14">
@@ -455,6 +506,20 @@ function Hero() {
           backgroundImage:
             "radial-gradient(circle at 15% 20%, rgba(37,99,235,0.12), transparent 42%), radial-gradient(circle at 85% 5%, rgba(29,78,216,0.10), transparent 45%)",
         }}
+      />
+      <SideGlow
+        side="left"
+        blobs={[
+          { top: "8%", size: 220, duration: "9s", delay: "0s", tone: "blue" },
+          { top: "58%", size: 170, duration: "11s", delay: "1.5s", tone: "emerald" },
+        ]}
+      />
+      <SideGlow
+        side="right"
+        blobs={[
+          { top: "16%", size: 200, duration: "10s", delay: "0.8s", tone: "amber" },
+          { top: "66%", size: 160, duration: "8.5s", delay: "0.3s", tone: "blue" },
+        ]}
       />
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-10 lg:px-8">
         <Reveal>
@@ -546,7 +611,15 @@ function TrustBar() {
 
 function ProblemSection() {
   return (
-    <section className="bg-white py-20 sm:py-28">
+    <section className="relative bg-white py-20 sm:py-28">
+      <SideGlow
+        side="left"
+        blobs={[{ top: "28%", size: 190, duration: "7.5s", delay: "0.3s", tone: "amber" }]}
+      />
+      <SideGlow
+        side="right"
+        blobs={[{ top: "48%", size: 170, duration: "9.5s", delay: "0.9s", tone: "emerald" }]}
+      />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
@@ -703,7 +776,15 @@ function BusinessTypes() {
 
 function Pricing() {
   return (
-    <section id="planes" className="scroll-mt-24 bg-blue-tint py-20 sm:py-28">
+    <section id="planes" className="relative scroll-mt-24 bg-blue-tint py-20 sm:py-28">
+      <SideGlow
+        side="left"
+        blobs={[{ top: "14%", size: 200, duration: "8.2s", delay: "0.4s", tone: "blue" }]}
+      />
+      <SideGlow
+        side="right"
+        blobs={[{ top: "52%", size: 180, duration: "7.4s", delay: "0.1s", tone: "amber" }]}
+      />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">

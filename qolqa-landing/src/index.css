@@ -14,3 +14,28 @@
     transform: translateY(-5px);
   }
 }
+
+/* Resplandores ambientales en los márgenes laterales (ver <SideGlow> en
+   LandingPage.tsx) — deriva de tiempo por instancia via variables CSS
+   para que no pulsen todos en sincronía, y se apagan del todo con
+   prefers-reduced-motion en vez de solo "suavizarse". */
+@keyframes blob-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate(-50%, -14px) scale(1.12);
+    opacity: 0.85;
+  }
+}
+.blob-pulse {
+  animation: blob-pulse var(--blob-duration, 9s) ease-in-out infinite;
+  animation-delay: var(--blob-delay, 0s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .blob-pulse {
+    animation: none;
+  }
+}
