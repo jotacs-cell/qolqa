@@ -87,7 +87,10 @@
   .sidebar {
     width: 236px;
     flex: none;
-    background: var(--primary-strong);
+    /* Un poco más claro que --primary-strong (usado en botones/estados
+       activos en el resto de la app) — solo para que el logo con texto
+       oscuro se lea bien aquí, sin tocar ese color en todos lados. */
+    background: #26449c;
     color: var(--primary-soft);
     display: flex;
     flex-direction: column;
