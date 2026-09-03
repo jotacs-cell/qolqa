@@ -1100,11 +1100,13 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1">
-            <img
-              src="/logo-facturapos-dark.png"
-              alt="FacturasPOS"
-              className="h-9 w-auto object-contain"
-            />
+            <div className="inline-block rounded-xl bg-white px-3 py-2">
+              <img
+                src="/logo-facturapos.png"
+                alt="FacturasPOS"
+                className="h-9 w-auto object-contain"
+              />
+            </div>
             <p className="mt-4 text-sm text-slate-400">
               Ventas, inventario y facturación electrónica para negocios peruanos.
             </p>
