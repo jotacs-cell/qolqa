@@ -51,6 +51,14 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     }
 
     let total = 0;
+    // Se acumulan gravada/IGV LÍNEA POR LÍNEA (nunca recalculados desde
+    // el total al final) para que, sumadas, den EXACTO lo mismo que el
+    // total — igual criterio que nubefactClient.js usa para armar
+    // items[] al enviar a SUNAT. Calcularlo por separado desde el total
+    // (total/1.18) es lo que antes producía descuadres de un céntimo
+    // entre el documento y la suma de sus propias líneas.
+    let operacionGravadaAcumulada = 0;
+    let igvAcumulado = 0;
     const lineas = [];
 
     for (const item of items) {
@@ -93,6 +101,11 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       const precioUnitario = item.precio_unitario != null ? Number(item.precio_unitario) : Number(producto.precio_venta);
       const subtotal = Number((precioUnitario * item.cantidad).toFixed(2));
       total += subtotal;
+
+      const gravadaLinea = Number((subtotal / (1 + IGV)).toFixed(2));
+      const igvLinea = Number((subtotal - gravadaLinea).toFixed(2));
+      operacionGravadaAcumulada += gravadaLinea;
+      igvAcumulado += igvLinea;
 
       lineas.push({ productoId: producto.id, cantidad: item.cantidad, precioUnitario, subtotal });
     }
@@ -149,8 +162,8 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     // 5. reservar comprobante electrónico (aún no se envía a SUNAT)
     const { serie, correlativo } = await reservarCorrelativo(client, companyId, tipoComprobante);
 
-    const operacionGravada = Number((total / (1 + IGV)).toFixed(2));
-    const igv = Number((total - operacionGravada).toFixed(2));
+    const operacionGravada = Number(operacionGravadaAcumulada.toFixed(2));
+    const igv = Number(igvAcumulado.toFixed(2));
 
     let clienteDatos = { tipo_documento: 'sin_documento', numero_documento: null, razon_social: 'Clientes varios', direccion: null };
     if (clienteId) {

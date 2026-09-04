@@ -1,5 +1,11 @@
 const axios = require('axios');
-const { CODIGO_TIPO_DOCUMENTO_CLIENTE, MOTIVOS_NOTA_CREDITO, fmt } = require('./catalogosSunat');
+const {
+  CODIGO_TIPO_DOCUMENTO_CLIENTE,
+  MOTIVOS_NOTA_CREDITO,
+  AFECTACION_IGV_A_TIPO_IGV_NUBEFACT,
+  CUBETA_POR_TIPO_IGV_NUBEFACT,
+  fmt,
+} = require('./catalogosSunat');
 
 // ---------------------------------------------------------------------
 // NubeFacT es un OSE (Operador de Servicios Electrónicos) homologado por
@@ -74,6 +80,49 @@ async function enviarComprobanteNubefact(comprobante, empresa, lineas, comproban
 function construirPayload(comprobante, empresa, lineas, comprobanteAfectado) {
   const esNota = comprobante.tipo_comprobante === 'nota_credito' || comprobante.tipo_comprobante === 'nota_debito';
 
+  // Los montos de cada línea (gravada/exonerada/inafecta + su IGV) se
+  // calculan UNA sola vez acá y las "cubetas" del total del documento
+  // (total_gravada/total_exonerada/total_inafecta/total_igv) se arman
+  // SUMANDO esos mismos valores — nunca recalculando desde
+  // comprobante.total o comprobante.operacion_gravada por separado.
+  // Antes se calculaban por dos caminos independientes (uno acá por
+  // línea, otro ya guardado en el comprobante desde el total) y el
+  // redondeo de cada uno por su lado podía descuadrar el documento un
+  // céntimo respecto a la suma de sus propias líneas — justo lo que
+  // SUNAT/NubeFacT rechazan en su validación estructural.
+  const cubetas = { gravada: 0, exonerada: 0, inafecta: 0, igv: 0 };
+
+  const items = lineas.map((l) => {
+    const tipoIgv = AFECTACION_IGV_A_TIPO_IGV_NUBEFACT[l.producto.codigo_afectacion_igv] || 1;
+    const cubeta = CUBETA_POR_TIPO_IGV_NUBEFACT[tipoIgv] || 'gravada';
+    const precio = Number(l.precio_unitario_historico);
+    const subtotalTotal = Number(l.subtotal);
+
+    // Solo lo gravado lleva IGV — exonerado/inafecto reportan su valor
+    // íntegro como subtotal, sin descontar nada.
+    const valorUnitario = cubeta === 'gravada' ? precio / (1 + 0.18) : precio;
+    const subtotalSinIgv = cubeta === 'gravada' ? Number((subtotalTotal / (1 + 0.18)).toFixed(2)) : subtotalTotal;
+    const igvLinea = cubeta === 'gravada' ? Number((subtotalTotal - subtotalSinIgv).toFixed(2)) : 0;
+
+    cubetas[cubeta] += subtotalSinIgv;
+    cubetas.igv += igvLinea;
+
+    return {
+      unidad_de_medida: l.producto.unidad_medida || 'NIU',
+      codigo: l.producto.codigo_barras || '',
+      descripcion: l.producto.nombre,
+      cantidad: Number(l.cantidad),
+      valor_unitario: fmt(valorUnitario),
+      precio_unitario: fmt(precio),
+      descuento: '0.00',
+      subtotal: fmt(subtotalSinIgv),
+      tipo_de_igv: tipoIgv,
+      igv: fmt(igvLinea),
+      total: fmt(subtotalTotal),
+      anticipo_regularizacion: false,
+    };
+  });
+
   const payload = {
     operacion: 'generar_comprobante',
     tipo_de_comprobante: TIPO_COMPROBANTE_NUBEFACT[comprobante.tipo_comprobante],
@@ -90,32 +139,14 @@ function construirPayload(comprobante, empresa, lineas, comprobanteAfectado) {
     fecha_de_emision: formatearFecha(comprobante.creado_en),
     moneda: 1, // NubeFacT: 1 = Soles
     porcentaje_de_igv: 18.0,
-    total_gravada: fmt(comprobante.operacion_gravada),
-    total_igv: fmt(comprobante.igv),
-    total_exonerada: '0.00',
-    total_inafecta: '0.00',
+    total_gravada: fmt(cubetas.gravada),
+    total_igv: fmt(cubetas.igv),
+    total_exonerada: fmt(cubetas.exonerada),
+    total_inafecta: fmt(cubetas.inafecta),
     total_gratuita: '0.00',
     total: fmt(comprobante.total),
     observaciones: comprobante.motivo_detalle || '',
-    items: lineas.map((l) => {
-      const precio = Number(l.precio_unitario_historico);
-      const valorUnitario = precio / (1 + 0.18);
-      const subtotalSinIgv = Number(l.subtotal) / (1 + 0.18);
-      return {
-        unidad_de_medida: l.producto.unidad_medida || 'NIU',
-        codigo: l.producto.codigo_barras || '',
-        descripcion: l.producto.nombre,
-        cantidad: Number(l.cantidad),
-        valor_unitario: fmt(valorUnitario),
-        precio_unitario: fmt(precio),
-        descuento: '0.00',
-        subtotal: fmt(subtotalSinIgv),
-        tipo_de_igv: 1, // 1 = gravado - operación onerosa (catálogo 07 de SUNAT)
-        igv: fmt(Number(l.subtotal) - subtotalSinIgv),
-        total: fmt(l.subtotal),
-        anticipo_regularizacion: false,
-      };
-    }),
+    items,
   };
 
   if (esNota && comprobanteAfectado) {

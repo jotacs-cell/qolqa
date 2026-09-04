@@ -42,6 +42,31 @@ const MOTIVOS_ANULACION_TOTAL = ['01', '06'];
 
 const IGV_TASA = 0.18;
 
+// Catálogo 07 — afectación del IGV (columna izquierda: código SUNAT que
+// vive en productos.codigo_afectacion_igv). Solo cubre los 3 casos de
+// "operación onerosa" que una tienda como esta realmente puede vender
+// (gravado/exonerado/inafecto) — los sub-casos de retiro/bonificación/
+// donación/muestras/exportación (11-16, 21, 31-36, 40) no tienen
+// equivalente acá porque esta caja no vende retiros ni exporta. La
+// columna derecha es el código propio de NubeFacT para `tipo_de_igv` —
+// igual que el resto de nubefactClient.js, sale de su documentación
+// PÚBLICA, no de su manual verificado: revisar antes de confiar en
+// producción real (ver advertencia al inicio de nubefactClient.js).
+const AFECTACION_IGV_A_TIPO_IGV_NUBEFACT = {
+  '10': 1, // Gravado - Operación Onerosa
+  '20': 7, // Exonerado - Operación Onerosa
+  '30': 9, // Inafecto - Operación Onerosa
+};
+
+// A qué "cubeta" del total del documento (NubeFacT: total_gravada /
+// total_exonerada / total_inafecta) aporta cada tipo_de_igv de arriba.
+// Gravado es el único con IGV real (18%); los demás no llevan IGV.
+const CUBETA_POR_TIPO_IGV_NUBEFACT = {
+  1: 'gravada',
+  7: 'exonerada',
+  9: 'inafecta',
+};
+
 function fmt(n) {
   return Number(n).toFixed(2);
 }
@@ -52,6 +77,8 @@ module.exports = {
   MOTIVOS_NOTA_CREDITO,
   MOTIVOS_QUE_RESTITUYEN_STOCK,
   MOTIVOS_ANULACION_TOTAL,
+  AFECTACION_IGV_A_TIPO_IGV_NUBEFACT,
+  CUBETA_POR_TIPO_IGV_NUBEFACT,
   IGV_TASA,
   fmt,
 };

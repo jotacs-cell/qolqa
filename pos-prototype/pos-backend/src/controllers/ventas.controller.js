@@ -165,9 +165,7 @@ async function anular(req, res) {
 
   const resultado = await conTransaccion(async (client) => {
     const { rows } = await client.query(
-      `SELECT id, estado_documento,
-              (fecha AT TIME ZONE 'America/Lima')::date = (now() AT TIME ZONE 'America/Lima')::date AS es_mismo_dia
-         FROM ventas WHERE id = $1 AND company_id = $2 FOR UPDATE`,
+      `SELECT id, estado_documento FROM ventas WHERE id = $1 AND company_id = $2 FOR UPDATE`,
       [req.params.id, req.usuario.companyId]
     );
     const venta = rows[0];
@@ -176,25 +174,26 @@ async function anular(req, res) {
       throw new ApiError(409, 'YA_ANULADA', 'Esta venta ya estaba anulada.');
     }
 
-    // Si el comprobante ya fue ACEPTADO por SUNAT, en general no se puede
-    // anular directamente: hay que emitir una nota de crédito. La única
-    // excepción real (regla SUNAT de "comunicación de baja") es anular el
-    // MISMO día en que se emitió — ahí sí se permite seguir este camino,
-    // igual que si nunca se hubiera enviado.
+    // Si el comprobante ya fue ACEPTADO por SUNAT, esta ruta NUNCA es
+    // válida — solo actualiza banderas locales, jamás avisa a SUNAT/
+    // NubeFacT, así que un comprobante aceptado quedaría "anulado" acá
+    // mientras SUNAT lo sigue considerando válido y emitido. La regla
+    // real de SUNAT ("comunicación de baja" el mismo día) SÍ existe,
+    // pero requiere una llamada a NubeFacT que este sistema todavía no
+    // implementa (no está verificada contra el manual real de la
+    // cuenta) — hasta que exista, la única ruta correcta para un
+    // comprobante aceptado es la nota de crédito, sin excepción por
+    // fecha.
     const { rows: comprobanteRows } = await client.query(
       'SELECT id, estado_sunat FROM comprobantes_electronicos WHERE venta_id = $1',
       [venta.id]
     );
     const comprobante = comprobanteRows[0];
-    if (
-      comprobante &&
-      ['aceptado', 'aceptado_con_observaciones'].includes(comprobante.estado_sunat) &&
-      !venta.es_mismo_dia
-    ) {
+    if (comprobante && ['aceptado', 'aceptado_con_observaciones'].includes(comprobante.estado_sunat)) {
       throw new ApiError(
         409,
         'REQUIERE_NOTA_CREDITO',
-        'El comprobante de esta venta ya fue aceptado por SUNAT y no es del mismo día: no se puede anular directamente. ' +
+        'El comprobante de esta venta ya fue aceptado por SUNAT: no se puede anular directamente. ' +
           `Usa PATCH /api/comprobantes/${comprobante.id}/anular para emitir la nota de crédito correspondiente.`
       );
     }

@@ -115,9 +115,21 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
       return acreditadoAhora >= lo.cantidad;
     });
 
+    // Gravada/IGV se acumulan LÍNEA POR LÍNEA (mismo criterio que
+    // ventas.service.js y nubefactClient.js) para que la suma de las
+    // líneas siempre cuadre exacto con el total del documento — ver
+    // ventas.service.js para el detalle de por qué recalcular desde el
+    // total (total/1.18) puede descuadrar un céntimo.
     const total = Number(lineasNota.reduce((s, l) => s + Number(l.subtotal), 0).toFixed(2));
-    const gravada = Number((total / (1 + IGV_TASA)).toFixed(2));
-    const igv = Number((total - gravada).toFixed(2));
+    let gravada = 0;
+    let igv = 0;
+    for (const l of lineasNota) {
+      const gravadaLinea = Number((Number(l.subtotal) / (1 + IGV_TASA)).toFixed(2));
+      gravada += gravadaLinea;
+      igv += Number((Number(l.subtotal) - gravadaLinea).toFixed(2));
+    }
+    gravada = Number(gravada.toFixed(2));
+    igv = Number(igv.toFixed(2));
 
     const serieForzada = original.tipo_comprobante === 'factura' ? 'FC01' : 'BC01';
     const { serie, correlativo } = await reservarCorrelativo(client, companyId, 'nota_credito', serieForzada);
