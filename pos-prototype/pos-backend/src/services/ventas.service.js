@@ -67,7 +67,8 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       }
 
       const { rows } = await client.query(
-        `SELECT id, precio_venta, estado
+        `SELECT id, precio_venta, estado, unidad_medida,
+                unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta
            FROM productos WHERE id = $1 AND company_id = $2 FOR UPDATE`,
         [item.producto_id, companyId]
       );
@@ -78,6 +79,19 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       if (producto.estado !== 'activo') {
         throw new ApiError(422, 'PRODUCTO_INACTIVO', `El producto ${item.producto_id} no está activo para venta.`);
       }
+
+      // Venta por unidad mayor (caja/paquete) — OPCIONAL, ver migración
+      // 016_multi_unidad.sql. El inventario SIEMPRE se maneja en unidad
+      // menor: `item.cantidad` cajas descuentan item.cantidad * factor
+      // unidades reales de stock. Todo lo que no manda item.unidad =
+      // 'mayor' se comporta exactamente igual que antes.
+      const esUnidadMayor = item.unidad === 'mayor';
+      if (esUnidadMayor && producto.unidad_mayor_factor == null) {
+        throw new ApiError(422, 'SIN_UNIDAD_MAYOR', `El producto ${item.producto_id} no tiene configurada una unidad mayor.`);
+      }
+      const factor = esUnidadMayor ? producto.unidad_mayor_factor : 1;
+      const cantidadBase = item.cantidad * factor;
+
       // Lo vendible es lo disponible EN ESTE ALMACÉN (stock - reservado
       // ahí mismo) — no el total de la empresa: un almacén sin stock no
       // se puede vender solo porque otro almacén sí tenga (Fase 10). Lo
@@ -85,7 +99,7 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       // puede vender por otro lado — facturar el pedido dueño de esa
       // reserva ya la libera antes de llegar aquí.
       const disponible = await kardex.disponibleEnAlmacen(client, item.producto_id, almacenId);
-      if (disponible < item.cantidad) {
+      if (disponible < cantidadBase) {
         throw new ApiError(
           409,
           'STOCK_INSUFICIENTE',
@@ -98,7 +112,9 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       // cotización, con su descuento ya aplicado), se respeta ese precio
       // congelado en vez de recalcular al precio de lista actual — el
       // cliente aceptó la cotización a ESE precio, no al de hoy.
-      const precioUnitario = item.precio_unitario != null ? Number(item.precio_unitario) : Number(producto.precio_venta);
+      const precioUnitario = item.precio_unitario != null
+        ? Number(item.precio_unitario)
+        : Number(esUnidadMayor ? producto.unidad_mayor_precio_venta : producto.precio_venta);
       const subtotal = Number((precioUnitario * item.cantidad).toFixed(2));
       total += subtotal;
 
@@ -107,7 +123,12 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       operacionGravadaAcumulada += gravadaLinea;
       igvAcumulado += igvLinea;
 
-      lineas.push({ productoId: producto.id, cantidad: item.cantidad, precioUnitario, subtotal });
+      lineas.push({
+        productoId: producto.id, cantidad: item.cantidad, precioUnitario, subtotal, cantidadBase,
+        unidadNombre: esUnidadMayor ? producto.unidad_mayor_nombre : 'UNIDAD',
+        unidadCodigo: esUnidadMayor ? producto.unidad_mayor_codigo_sunat : producto.unidad_medida,
+        factorConversion: factor,
+      });
     }
     total = Number(total.toFixed(2));
 
@@ -134,16 +155,18 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     // 3. detalle (insert por línea; con pocas líneas por venta no vale la pena un bulk insert)
     for (const linea of lineas) {
       await client.query(
-        `INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario_historico, subtotal)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [venta.id, linea.productoId, linea.cantidad, linea.precioUnitario, linea.subtotal]
+        `INSERT INTO detalle_ventas
+           (venta_id, producto_id, cantidad, precio_unitario_historico, subtotal, unidad_nombre, unidad_medida_codigo, factor_conversion)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [venta.id, linea.productoId, linea.cantidad, linea.precioUnitario, linea.subtotal, linea.unidadNombre, linea.unidadCodigo, linea.factorConversion]
       );
-      // 4. descontar stock — kardex.registrarMovimiento actualiza
-      // producto_stock + productos.stock y deja el movimiento en el
-      // kardex; el CHECK stock >= 0 sigue siendo la última red de
+      // 4. descontar stock — SIEMPRE en unidad menor (cantidadBase), sin
+      // importar en qué unidad se vendió. kardex.registrarMovimiento
+      // actualiza producto_stock + productos.stock y deja el movimiento
+      // en el kardex; el CHECK stock >= 0 sigue siendo la última red de
       // seguridad si algo se coló antes del chequeo del paso 1.
       await kardex.registrarMovimiento(client, {
-        companyId, productoId: linea.productoId, almacenId, tipo: 'salida', cantidad: linea.cantidad,
+        companyId, productoId: linea.productoId, almacenId, tipo: 'salida', cantidad: linea.cantidadBase,
         referenciaTipo: 'venta', referenciaId: venta.id, usuarioId,
       });
     }

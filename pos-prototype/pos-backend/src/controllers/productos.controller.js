@@ -23,7 +23,8 @@ async function listar(req, res) {
   const where = `WHERE ${condiciones.join(' AND ')}`;
 
   const { rows: data } = await pool.query(
-    `SELECT id, codigo_barras, nombre, descripcion, precio_compra, precio_venta, stock, stock_reservado, (stock - stock_reservado) AS stock_disponible, estado, imagen_url
+    `SELECT id, codigo_barras, nombre, descripcion, precio_compra, precio_venta, stock, stock_reservado, (stock - stock_reservado) AS stock_disponible, estado, imagen_url,
+            unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta
      FROM productos ${where}
      ORDER BY nombre
      LIMIT ${limit} OFFSET ${offset}`,
@@ -53,6 +54,32 @@ async function obtenerPorCodigoBarras(req, res) {
   res.json(rows[0]);
 }
 
+/**
+ * Valida el bloque opcional de unidad mayor (venta por caja/paquete) —
+ * ver migración 016_multi_unidad.sql. O las 4 vienen completas, o
+ * ninguna: no tiene sentido una caja "a medias". Devuelve los 4 valores
+ * listos para el INSERT/UPDATE (null,null,null,null si no aplica).
+ */
+function validarUnidadMayor({ unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta }) {
+  const campos = [unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta];
+  const algunoPresente = campos.some((c) => c != null && c !== '');
+  if (!algunoPresente) return [null, null, null, null];
+
+  if (!unidad_mayor_nombre || !unidad_mayor_codigo_sunat || unidad_mayor_factor == null || unidad_mayor_precio_venta == null) {
+    throw new ApiError(
+      422, 'UNIDAD_MAYOR_INCOMPLETA',
+      'Para vender por unidad mayor debes indicar nombre, código SUNAT, contenido (cuántas unidades menor trae) y precio de venta — o dejar los 4 vacíos.'
+    );
+  }
+  if (!Number.isInteger(Number(unidad_mayor_factor)) || Number(unidad_mayor_factor) <= 1) {
+    throw new ApiError(422, 'UNIDAD_MAYOR_FACTOR_INVALIDO', 'El contenido debe ser un entero mayor a 1 (si es 1, no hace falta unidad mayor).');
+  }
+  if (Number(unidad_mayor_precio_venta) < 0) {
+    throw new ApiError(422, 'UNIDAD_MAYOR_PRECIO_INVALIDO', 'El precio de la unidad mayor no puede ser negativo.');
+  }
+  return [unidad_mayor_nombre, unidad_mayor_codigo_sunat, Number(unidad_mayor_factor), Number(unidad_mayor_precio_venta)];
+}
+
 async function crear(req, res) {
   const { codigo_barras = null, nombre, precio_compra, precio_venta, stock = 0, imagen_url = null } = req.body;
   if (!nombre || precio_compra == null || precio_venta == null) {
@@ -61,6 +88,7 @@ async function crear(req, res) {
   if (Number(precio_venta) < Number(precio_compra)) {
     throw new ApiError(422, 'MARGEN_INVALIDO', 'precio_venta no puede ser menor a precio_compra.');
   }
+  const [umNombre, umCodigo, umFactor, umPrecio] = validarUnidadMayor(req.body);
 
   try {
     const producto = await conTransaccion(async (client) => {
@@ -69,9 +97,12 @@ async function crear(req, res) {
       // salió el stock con el que nace el producto, no solo el que se
       // mueve después.
       const { rows } = await client.query(
-        `INSERT INTO productos (company_id, codigo_barras, nombre, precio_compra, precio_venta, stock, imagen_url)
-         VALUES ($1, $2, $3, $4, $5, 0, $6) RETURNING *`,
-        [req.usuario.companyId, codigo_barras, nombre, precio_compra, precio_venta, imagen_url]
+        `INSERT INTO productos (
+           company_id, codigo_barras, nombre, precio_compra, precio_venta, stock, imagen_url,
+           unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta
+         )
+         VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, $10) RETURNING *`,
+        [req.usuario.companyId, codigo_barras, nombre, precio_compra, precio_venta, imagen_url, umNombre, umCodigo, umFactor, umPrecio]
       );
       const nuevo = rows[0];
       if (Number(stock) > 0) {
@@ -102,16 +133,29 @@ async function crear(req, res) {
 
 async function actualizar(req, res) {
   const { nombre, descripcion, precio_compra, precio_venta, imagen_url } = req.body;
+  // A diferencia del resto de campos (COALESCE — solo se toca lo que
+  // viene en el body), la unidad mayor SIEMPRE se reemplaza por completo
+  // con lo que llega: es la única forma de poder QUITARLA (mandando los
+  // 4 campos vacíos) una vez configurada.
+  const tieneUnidadMayorEnBody = ['unidad_mayor_nombre', 'unidad_mayor_codigo_sunat', 'unidad_mayor_factor', 'unidad_mayor_precio_venta']
+    .some((k) => Object.prototype.hasOwnProperty.call(req.body, k));
+  const [umNombre, umCodigo, umFactor, umPrecio] = tieneUnidadMayorEnBody ? validarUnidadMayor(req.body) : [undefined, undefined, undefined, undefined];
+
   const { rows } = await pool.query(
     `UPDATE productos SET
        nombre = COALESCE($1, nombre),
        descripcion = COALESCE($2, descripcion),
        precio_compra = COALESCE($3, precio_compra),
        precio_venta = COALESCE($4, precio_venta),
-       imagen_url = COALESCE($5, imagen_url)
-     WHERE id = $6 AND company_id = $7
+       imagen_url = COALESCE($5, imagen_url),
+       unidad_mayor_nombre = CASE WHEN $8 THEN $6 ELSE unidad_mayor_nombre END,
+       unidad_mayor_codigo_sunat = CASE WHEN $8 THEN $9 ELSE unidad_mayor_codigo_sunat END,
+       unidad_mayor_factor = CASE WHEN $8 THEN $10 ELSE unidad_mayor_factor END,
+       unidad_mayor_precio_venta = CASE WHEN $8 THEN $11 ELSE unidad_mayor_precio_venta END
+     WHERE id = $7 AND company_id = $12
      RETURNING *`,
-    [nombre, descripcion, precio_compra, precio_venta, imagen_url, req.params.id, req.usuario.companyId]
+    [nombre, descripcion, precio_compra, precio_venta, imagen_url,
+     umNombre, req.params.id, tieneUnidadMayorEnBody, umCodigo, umFactor, umPrecio, req.usuario.companyId]
   );
   if (!rows[0]) throw new ApiError(404, 'NO_ENCONTRADO', 'Producto no encontrado.');
   await auditoria.registrar({

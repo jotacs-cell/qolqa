@@ -107,7 +107,8 @@ async function cargarEmpresa(companyId) {
 async function cargarLineas(ventaId) {
   const { rows } = await pool.query(
     `SELECT dv.cantidad, dv.precio_unitario_historico, dv.subtotal,
-            p.codigo_barras, p.nombre, p.unidad_medida, p.codigo_afectacion_igv
+            dv.unidad_nombre, dv.unidad_medida_codigo,
+            p.codigo_barras, p.nombre, p.codigo_afectacion_igv
        FROM detalle_ventas dv
        JOIN productos p ON p.id = dv.producto_id
       WHERE dv.venta_id = $1
@@ -118,10 +119,16 @@ async function cargarLineas(ventaId) {
     cantidad: r.cantidad,
     precio_unitario_historico: r.precio_unitario_historico,
     subtotal: r.subtotal,
+    // unidad_medida sale de detalle_ventas (congelada al vender), NO del
+    // producto en vivo — si se vendió por unidad mayor (caja) esto trae
+    // el código SUNAT de la caja, no el de la unidad suelta; y si el
+    // producto cambia de unidad después, esta venta ya emitida no cambia
+    // de significado (mismo criterio que precio_unitario_historico).
     producto: {
       codigo_barras: r.codigo_barras,
       nombre: r.nombre,
-      unidad_medida: r.unidad_medida,
+      unidad_medida: r.unidad_medida_codigo,
+      unidad_nombre: r.unidad_nombre,
       codigo_afectacion_igv: r.codigo_afectacion_igv,
     },
   }));
@@ -137,6 +144,7 @@ function normalizarLineaNota(l) {
       codigo_barras: l.codigo_barras,
       nombre: l.nombre,
       unidad_medida: l.unidad_medida,
+      unidad_nombre: l.unidad_nombre,
       codigo_afectacion_igv: l.codigo_afectacion_igv,
     },
   };

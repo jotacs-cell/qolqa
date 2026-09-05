@@ -175,6 +175,19 @@ CREATE TABLE productos (
     UNIQUE (company_id, codigo_barras)
 );
 
+-- Unidad mayor opcional (venta por caja/paquete) — ver migración
+-- 016_multi_unidad.sql. O las 4 columnas están completas, o las 4
+-- vacías: no tiene sentido una caja "a medias".
+ALTER TABLE productos ADD COLUMN unidad_mayor_nombre VARCHAR(30);
+ALTER TABLE productos ADD COLUMN unidad_mayor_codigo_sunat VARCHAR(3);
+ALTER TABLE productos ADD COLUMN unidad_mayor_factor INTEGER CHECK (unidad_mayor_factor IS NULL OR unidad_mayor_factor > 1);
+ALTER TABLE productos ADD COLUMN unidad_mayor_precio_venta NUMERIC(12,2) CHECK (unidad_mayor_precio_venta IS NULL OR unidad_mayor_precio_venta >= 0);
+ALTER TABLE productos ADD CONSTRAINT chk_unidad_mayor_completa CHECK (
+  (unidad_mayor_nombre IS NULL AND unidad_mayor_codigo_sunat IS NULL AND unidad_mayor_factor IS NULL AND unidad_mayor_precio_venta IS NULL)
+  OR
+  (unidad_mayor_nombre IS NOT NULL AND unidad_mayor_codigo_sunat IS NOT NULL AND unidad_mayor_factor IS NOT NULL AND unidad_mayor_precio_venta IS NOT NULL)
+);
+
 CREATE INDEX idx_productos_codigo_barras ON productos (codigo_barras);
 CREATE INDEX idx_productos_estado ON productos (estado);
 CREATE INDEX idx_productos_company ON productos (company_id);
@@ -313,6 +326,13 @@ CREATE TABLE detalle_ventas (
     cantidad                    INTEGER         NOT NULL CHECK (cantidad > 0),
     precio_unitario_historico   NUMERIC(12,2)   NOT NULL CHECK (precio_unitario_historico >= 0),
     subtotal                    NUMERIC(12,2)   NOT NULL CHECK (subtotal >= 0),
+    -- Unidad de venta congelada (ver migración 016_multi_unidad.sql):
+    -- `cantidad` de arriba está en ESTA unidad, no siempre en la unidad
+    -- menor del producto — factor_conversion dice cuántas unidades menor
+    -- (stock real) representa cada una.
+    unidad_nombre               VARCHAR(30)     NOT NULL DEFAULT 'UNIDAD',
+    unidad_medida_codigo        VARCHAR(3)      NOT NULL DEFAULT 'NIU',
+    factor_conversion           INTEGER         NOT NULL DEFAULT 1 CHECK (factor_conversion > 0),
 
     CONSTRAINT chk_subtotal_coherente CHECK (subtotal = cantidad * precio_unitario_historico)
 );

@@ -1478,6 +1478,70 @@
       });
     }
 
+    /* ---- Unidad mayor (venta por caja/paquete) — bloque opcional
+     * compartido entre "Nuevo producto" y "Editar producto". Los códigos
+     * del <select> son el catálogo SUNAT 03 real (Caja/Paquete/Docena/
+     * Balde/Bolsa) — no texto libre, para no mandar un código inventado. ---- */
+    var UNIDAD_MAYOR_OPCIONES = [
+      { codigo: 'BX', etiqueta: 'Caja (BX)' },
+      { codigo: 'PK', etiqueta: 'Paquete (PK)' },
+      { codigo: 'DZN', etiqueta: 'Docena (DZN)' },
+      { codigo: 'BJ', etiqueta: 'Balde (BJ)' },
+      { codigo: 'BG', etiqueta: 'Bolsa (BG)' },
+    ];
+    function unidadMayorCamposHtml(p) {
+      var tiene = !!(p && p.unidad_mayor_factor);
+      return '<div class="field" style="margin-top:2px">' +
+        '<label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">' +
+        '<input type="checkbox" name="tiene_unidad_mayor"' + (tiene ? ' checked' : '') + '> También se vende por caja/paquete</label>' +
+        '</div>' +
+        '<div id="camposUnidadMayor" style="display:' + (tiene ? 'block' : 'none') + '">' +
+        '<div class="field-2col">' +
+        '<div class="field" data-field="unidad_mayor_nombre"><label>Nombre</label><input name="unidad_mayor_nombre" type="text" placeholder="Ej. CAJA" value="' + esc(p && p.unidad_mayor_nombre || '') + '"><span class="err">Indica un nombre (ej. CAJA).</span></div>' +
+        '<div class="field" data-field="unidad_mayor_codigo_sunat"><label>Código SUNAT</label><select name="unidad_mayor_codigo_sunat">' +
+        UNIDAD_MAYOR_OPCIONES.map(function (o) {
+          return '<option value="' + o.codigo + '"' + (p && p.unidad_mayor_codigo_sunat === o.codigo ? ' selected' : '') + '>' + o.etiqueta + '</option>';
+        }).join('') +
+        '</select></div>' +
+        '</div>' +
+        '<div class="field-2col">' +
+        '<div class="field" data-field="unidad_mayor_factor"><label>Contiene <span class="opt">(unidades)</span></label><input name="unidad_mayor_factor" type="number" min="2" step="1" placeholder="Ej. 10" value="' + esc(p && p.unidad_mayor_factor || '') + '"><span class="err">Ingresa un entero mayor a 1.</span></div>' +
+        '<div class="field" data-field="unidad_mayor_precio_venta"><label>Precio de venta (S/)</label><input name="unidad_mayor_precio_venta" type="number" step="0.01" min="0" placeholder="0.00" value="' + esc(p && p.unidad_mayor_precio_venta || '') + '"><span class="err">Ingresa un precio válido.</span></div>' +
+        '</div>' +
+        '</div>';
+    }
+    function wireUnidadMayorToggle(form) {
+      form.tiene_unidad_mayor.addEventListener('change', function () {
+        document.getElementById('camposUnidadMayor').style.display = form.tiene_unidad_mayor.checked ? 'block' : 'none';
+      });
+    }
+    /** Lee y valida el bloque de unidad mayor. Devuelve un objeto con los
+     * 4 campos (null,null,null,null si el checkbox está apagado) o
+     * `null` si hay un error de validación (ya marcado en el form). */
+    function leerUnidadMayor(form) {
+      if (!form.tiene_unidad_mayor.checked) {
+        return { unidad_mayor_nombre: null, unidad_mayor_codigo_sunat: null, unidad_mayor_factor: null, unidad_mayor_precio_venta: null };
+      }
+      var nombre = form.unidad_mayor_nombre.value.trim();
+      var factor = form.unidad_mayor_factor.value;
+      var precio = form.unidad_mayor_precio_venta.value;
+      var ok = true;
+      if (!nombre) { fieldError(form.querySelector('[data-field=unidad_mayor_nombre]'), 'Indica un nombre (ej. CAJA).'); ok = false; }
+      if (factor === '' || !Number.isInteger(Number(factor)) || Number(factor) <= 1) {
+        fieldError(form.querySelector('[data-field=unidad_mayor_factor]'), 'Ingresa un entero mayor a 1.'); ok = false;
+      }
+      if (precio === '' || Number(precio) < 0) {
+        fieldError(form.querySelector('[data-field=unidad_mayor_precio_venta]'), 'Ingresa un precio válido.'); ok = false;
+      }
+      if (!ok) return null;
+      return {
+        unidad_mayor_nombre: nombre,
+        unidad_mayor_codigo_sunat: form.unidad_mayor_codigo_sunat.value,
+        unidad_mayor_factor: Number(factor),
+        unidad_mayor_precio_venta: Number(precio),
+      };
+    }
+
     /* ---- Nuevo producto (real): pos-backend exige precio_compra y no tiene categorías ---- */
     function openNuevoProductoReal() {
       openModal(
@@ -1491,10 +1555,12 @@
         '<div class="field" data-field="precio_venta"><label>Precio de venta (S/)</label><input name="precio_venta" type="number" step="0.01" min="0" placeholder="0.00"><span class="err">Debe ser mayor o igual al de compra.</span></div>' +
         '</div>' +
         '<div class="field" data-field="stock"><label>Stock inicial</label><input name="stock" type="number" min="0" placeholder="0"><span class="err">Ingresa una cantidad válida.</span></div>' +
+        unidadMayorCamposHtml(null) +
         '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new">Guardar producto</button></div>' +
         '</form></div>'
       );
       var form = document.getElementById('formProductoReal');
+      wireUnidadMayorToggle(form);
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         clearErrors(form);
@@ -1509,16 +1575,17 @@
         if (!v.nombre) { fieldError(form.querySelector('[data-field=nombre]'), 'Escribe el nombre del producto.'); ok = false; }
         if (v.precio_compra === '' || Number(v.precio_compra) < 0) { fieldError(form.querySelector('[data-field=precio_compra]'), 'Ingresa un precio válido.'); ok = false; }
         if (v.precio_venta === '' || Number(v.precio_venta) < Number(v.precio_compra)) { fieldError(form.querySelector('[data-field=precio_venta]'), 'Debe ser mayor o igual al de compra.'); ok = false; }
-        if (!ok) return;
+        var unidadMayor = leerUnidadMayor(form);
+        if (!ok || !unidadMayor) return;
         var submitBtn = form.querySelector('button[type=submit]');
         submitBtn.disabled = true;
         try {
           var creado = await posFetch('/productos', {
             method: 'POST',
-            body: JSON.stringify({
+            body: JSON.stringify(Object.assign({
               nombre: v.nombre, codigo_barras: v.codigo_barras,
               precio_compra: Number(v.precio_compra), precio_venta: Number(v.precio_venta), stock: Number(v.stock)
-            })
+            }, unidadMayor))
           });
           REAL.productos.unshift(creado);
           renderInventario();
@@ -1545,10 +1612,12 @@
         '<div class="field" data-field="precio_venta"><label>Precio de venta (S/)</label><input name="precio_venta" type="number" step="0.01" min="0" value="' + esc(p.precio_venta) + '"><span class="err">Debe ser mayor o igual al de compra.</span></div>' +
         '</div>' +
         '<p style="font-size:11.5px;color:var(--ink-faint);margin:2px 0 14px">El código de barras y el stock no se cambian aquí — el stock se ajusta desde Inventario &gt; Kardex.</p>' +
+        unidadMayorCamposHtml(p) +
         '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new">Guardar cambios</button></div>' +
         '</form></div>'
       );
       var form = document.getElementById('formEditarProducto');
+      wireUnidadMayorToggle(form);
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         clearErrors(form);
@@ -1562,16 +1631,17 @@
         if (!v.nombre) { fieldError(form.querySelector('[data-field=nombre]'), 'Escribe el nombre del producto.'); ok = false; }
         if (v.precio_compra === '' || Number(v.precio_compra) < 0) { fieldError(form.querySelector('[data-field=precio_compra]'), 'Ingresa un precio válido.'); ok = false; }
         if (v.precio_venta === '' || Number(v.precio_venta) < Number(v.precio_compra)) { fieldError(form.querySelector('[data-field=precio_venta]'), 'Debe ser mayor o igual al de compra.'); ok = false; }
-        if (!ok) return;
+        var unidadMayor = leerUnidadMayor(form);
+        if (!ok || !unidadMayor) return;
         var submitBtn = form.querySelector('button[type=submit]');
         submitBtn.disabled = true;
         try {
           var actualizado = await posFetch('/productos/' + id, {
             method: 'PUT',
-            body: JSON.stringify({
+            body: JSON.stringify(Object.assign({
               nombre: v.nombre, descripcion: v.descripcion,
               precio_compra: Number(v.precio_compra), precio_venta: Number(v.precio_venta),
-            })
+            }, unidadMayor))
           });
           var idxProd = REAL.productos.findIndex(function (x) { return String(x.id) === String(id); });
           if (idxProd !== -1) REAL.productos[idxProd] = actualizado;
@@ -5841,7 +5911,8 @@
           '</div>' +
           '<table class="items-table"><thead><tr><th>Producto</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">Subtotal</th></tr></thead><tbody>' +
           v.items.map(function (it) {
-            return '<tr><td>' + esc(it.nombre) + '</td><td class="col-num">' + it.cantidad + '</td><td class="col-num mono">' + money(it.precio_unitario_historico) + '</td><td class="col-num mono">' + money(it.subtotal) + '</td></tr>';
+            var unidadSufijo = it.unidad_nombre && it.unidad_nombre !== 'UNIDAD' ? ' ' + esc(it.unidad_nombre) : '';
+            return '<tr><td>' + esc(it.nombre) + '</td><td class="col-num">' + it.cantidad + unidadSufijo + '</td><td class="col-num mono">' + money(it.precio_unitario_historico) + '</td><td class="col-num mono">' + money(it.subtotal) + '</td></tr>';
           }).join('') +
           '</tbody></table>' +
           '<div style="text-align:right;margin-top:10px;font-size:14px">Total: <b class="mono">' + money(v.total) + '</b></div>' +
@@ -6101,14 +6172,19 @@
         nuevaVentaVolverA = viewActivoAntesNuevaVenta.id.replace('view-', '');
       }
 
-      var lineas = [{ producto_id: '', cantidad: 1 }];
+      var lineas = [{ producto_id: '', cantidad: 1, unidad: 'menor' }];
 
       // precio_unitario en cada línea: null/undefined mientras no se
       // sobrescribe a mano (se usa el precio de lista del producto); una
       // vez que el vendedor edita el campo, ese valor manda incluso si la
-      // cantidad cambia después — solo se resetea al elegir OTRO producto.
+      // cantidad cambia después — solo se resetea al elegir OTRO producto
+      // o al cambiar de unidad (ver wireLineas). Si la línea se vende por
+      // unidad mayor (caja/paquete, ver migración 016_multi_unidad.sql),
+      // el precio de lista es el de la caja, no el de la unidad suelta.
       function precioLinea(l, p) {
-        return l.precio_unitario != null ? Number(l.precio_unitario) : (p ? Number(p.precio_venta) : 0);
+        if (l.precio_unitario != null) return Number(l.precio_unitario);
+        if (!p) return 0;
+        return l.unidad === 'mayor' ? Number(p.unidad_mayor_precio_venta) : Number(p.precio_venta);
       }
       // El precio ya incluye IGV (así se muestra en todo el sistema) — el
       // monto de IGV contenido en cada línea se extrae hacia atrás con la
@@ -6119,6 +6195,16 @@
       function igvLinea(subtotal) {
         return subtotal - subtotal / 1.18;
       }
+      // Selector de unidad (menor/mayor) por línea — solo aparece cuando
+      // el producto elegido tiene una unidad mayor configurada (la
+      // mayoría no la tiene, y ahí no se muestra nada, igual que antes).
+      function unidadCeldaHtml(l, p) {
+        if (!p || !p.unidad_mayor_factor) return '<span class="mono" style="color:var(--ink-faint);font-size:11.3px">Unidad</span>';
+        return '<select class="linea-unidad mono" style="font-size:11.5px">' +
+          '<option value="menor"' + (l.unidad !== 'mayor' ? ' selected' : '') + '>Unidad</option>' +
+          '<option value="mayor"' + (l.unidad === 'mayor' ? ' selected' : '') + '>' + esc(p.unidad_mayor_nombre) + ' (x' + p.unidad_mayor_factor + ')</option>' +
+          '</select>';
+      }
       function filasHtml() {
         return lineas.map(function (l, i) {
           var p = REAL.productos.filter(function (x) { return String(x.id) === String(l.producto_id); })[0];
@@ -6127,6 +6213,7 @@
           return '<tr data-linea="' + i + '">' +
             '<td>' + productoPickerHtml(l.producto_id) + '</td>' +
             '<td class="mono" style="color:var(--ink-faint);font-size:11.3px">' + (p && p.codigo_barras ? esc(p.codigo_barras) : '—') + '</td>' +
+            '<td>' + unidadCeldaHtml(l, p) + '</td>' +
             '<td class="col-num">' + cantidadStepperHtml(l.cantidad) + '</td>' +
             '<td class="col-num">' + (p ? '<input class="linea-precio mono" type="number" min="0" step="0.01" value="' + precio.toFixed(2) + '">' : '<span class="mono">—</span>') + '</td>' +
             '<td class="col-num mono linea-igv" style="color:var(--ink-faint)">' + money(igvLinea(subtotal)) + '</td>' +
@@ -6210,7 +6297,7 @@
           '<div class="field" data-field="dias_credito" id="campoDiasCredito" style="margin-top:8px' + (esCreditoPrevio ? '' : ';display:none') + '"><label>Días de crédito</label><input type="number" name="dias_credito" min="1" step="1" value="' + esc(diasCreditoPrevio || 30) + '" style="max-width:120px"></div>' +
           '</div>' +
           '</div>' +
-          '<table class="items-table"><thead><tr><th>Producto</th><th>Código</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">IGV (18%)</th><th class="col-num">Subtotal</th><th></th></tr></thead>' +
+          '<table class="items-table"><thead><tr><th>Producto</th><th>Código</th><th>Unidad</th><th class="col-num">Cantidad</th><th class="col-num">Precio u.</th><th class="col-num">IGV (18%)</th><th class="col-num">Subtotal</th><th></th></tr></thead>' +
           '<tbody id="lineasVenta">' + filasHtml() + '</tbody></table>' +
           '<div class="doc-add-row"><button type="button" class="btn-ghost" id="btnAgregarLinea"><svg class="icon" style="width:13px;height:13px"><use href="#i-plus"/></svg>Agregar producto</button></div>' +
           '<div style="text-align:right;margin-top:10px;font-size:14px">Total: <b class="mono" id="totalEstimado">' + money(totalEstimado()) + '</b></div>' +
@@ -6231,6 +6318,14 @@
           wireProductoPicker(scopeEl, function (id) {
             lineas[i].producto_id = id;
             lineas[i].precio_unitario = null; // otro producto = vuelve a su precio de lista
+            lineas[i].unidad = 'menor';
+            refrescarLineas();
+          });
+        });
+        document.querySelectorAll('.linea-unidad').forEach(function (sel, i) {
+          sel.addEventListener('change', function () {
+            lineas[i].unidad = sel.value;
+            lineas[i].precio_unitario = null; // cambiar de unidad vuelve al precio de lista de ESA unidad
             refrescarLineas();
           });
         });
@@ -6268,7 +6363,7 @@
           document.getElementById('campoDiasCredito').style.display = form.es_credito.checked ? '' : 'none';
         });
         document.getElementById('btnAgregarLinea').addEventListener('click', function () {
-          lineas.push({ producto_id: '', cantidad: 1 });
+          lineas.push({ producto_id: '', cantidad: 1, unidad: 'menor' });
           refrescarLineas();
         });
         // Si el cliente todavía no confirma la compra, no tiene sentido
@@ -6276,6 +6371,15 @@
         // cotización" — se reutilizan las mismas líneas ya cargadas aquí y
         // se guardan como cotización real (sin descontar stock).
         document.getElementById('btnGuardarComoCotizacion').addEventListener('click', async function () {
+          // Las cotizaciones todavía no saben de unidad mayor (caja/
+          // paquete) — confirmarlas más tarde generaría una venta que
+          // descuenta stock en la unidad EQUIVOCADA (ver
+          // ventas.service.js#registrarVenta). Mejor bloquear acá con un
+          // mensaje claro que dejar pasar un descuadre de inventario.
+          if (lineas.some(function (l) { return l.unidad === 'mayor'; })) {
+            toast('Las cotizaciones todavía no soportan venta por unidad mayor (caja/paquete) — cambia esas líneas a "Unidad" o usa Nueva venta directamente.', 'error');
+            return;
+          }
           var items = lineas
             .filter(function (l) { return l.producto_id && l.cantidad > 0; })
             .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad), precio_unitario: l.precio_unitario != null ? Number(l.precio_unitario) : undefined }; });
@@ -6302,7 +6406,13 @@
           e.preventDefault();
           var items = lineas
             .filter(function (l) { return l.producto_id && l.cantidad > 0; })
-            .map(function (l) { return { producto_id: Number(l.producto_id), cantidad: Number(l.cantidad), precio_unitario: l.precio_unitario != null ? Number(l.precio_unitario) : undefined }; });
+            .map(function (l) {
+              return {
+                producto_id: Number(l.producto_id), cantidad: Number(l.cantidad),
+                precio_unitario: l.precio_unitario != null ? Number(l.precio_unitario) : undefined,
+                unidad: l.unidad === 'mayor' ? 'mayor' : undefined,
+              };
+            });
           if (!items.length) { toast('Agrega al menos un producto con cantidad válida.', 'error'); return; }
           var tipo = form.tipo_comprobante.value;
           var metodo = form.metodo_pago.value;

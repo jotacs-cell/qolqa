@@ -66,8 +66,13 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
     }
 
     const { rows: lineasOriginales } = await client.query(
+      // unidad_medida/unidad_nombre salen de detalle_ventas (congeladas al
+      // vender), no del producto en vivo — una nota de crédito sobre una
+      // línea vendida por unidad mayor (caja) debe reportar esa misma
+      // unidad, no la unidad suelta del producto hoy.
       `SELECT dv.producto_id, dv.cantidad, dv.precio_unitario_historico, dv.subtotal,
-              p.codigo_barras, p.nombre, p.unidad_medida, p.codigo_afectacion_igv
+              dv.unidad_nombre, dv.unidad_medida_codigo AS unidad_medida,
+              p.codigo_barras, p.nombre, p.codigo_afectacion_igv
          FROM detalle_ventas dv JOIN productos p ON p.id = dv.producto_id
         WHERE dv.venta_id = $1
         ORDER BY dv.id`,
@@ -139,6 +144,7 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
       codigo_barras: l.codigo_barras,
       nombre: l.nombre,
       unidad_medida: l.unidad_medida,
+      unidad_nombre: l.unidad_nombre,
       codigo_afectacion_igv: l.codigo_afectacion_igv,
       cantidad: l.cantidad,
       precio_unitario: l.precio_unitario_historico,

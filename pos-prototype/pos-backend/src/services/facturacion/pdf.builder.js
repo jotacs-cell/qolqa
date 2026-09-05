@@ -134,7 +134,13 @@ function generarPdfComprobante(comprobante, empresa, lineas, comprobanteAfectado
         const alturaFila = 18;
         if (i % 2 === 1) doc.rect(42, y, 510, alturaFila).fill('#f9f8fb');
         doc.fillColor('#000000');
-        doc.text(String(linea.cantidad), colX.cant + 6, y + 5);
+        // Solo se muestra la unidad cuando NO es la unidad suelta normal
+        // (ej. "3 CAJA" para una venta por unidad mayor) — para no
+        // saturar el 99% de líneas que se venden sueltas.
+        const unidadSufijo = linea.producto.unidad_nombre && linea.producto.unidad_nombre !== 'UNIDAD'
+          ? ' ' + linea.producto.unidad_nombre
+          : '';
+        doc.text(String(linea.cantidad) + unidadSufijo, colX.cant + 6, y + 5, { width: colX.desc - colX.cant - 6 });
         doc.text(linea.producto.nombre, colX.desc, y + 5, { width: 280, ellipsis: true });
         doc.text(fmt(linea.precio_unitario_historico), colX.punit, y + 5, { width: 80, align: 'right' });
         doc.text(fmt(linea.subtotal), colX.importe, y + 5, { width: 74, align: 'right' });
@@ -301,8 +307,11 @@ function generarTicketComprobante(comprobante, empresa, lineas, anchoMm) {
       lineaSeparadora();
 
       lineas.forEach((linea) => {
+        const unidadSufijo = linea.producto.unidad_nombre && linea.producto.unidad_nombre !== 'UNIDAD'
+          ? ' ' + linea.producto.unidad_nombre
+          : '';
         doc.font('Helvetica-Bold').fontSize(fs).text(linea.producto.nombre, { width: ancho });
-        filaMonoespaciada(`${linea.cantidad} x ${fmt(linea.precio_unitario_historico)}`, fmt(linea.subtotal));
+        filaMonoespaciada(`${linea.cantidad}${unidadSufijo} x ${fmt(linea.precio_unitario_historico)}`, fmt(linea.subtotal));
       });
       doc.font('Helvetica').fontSize(fs);
       lineaSeparadora();

@@ -131,7 +131,7 @@ async function obtener(req, res) {
   }
 
   const { rows: items } = await pool.query(
-    `SELECT dv.producto_id, p.nombre, dv.cantidad, dv.precio_unitario_historico, dv.subtotal
+    `SELECT dv.producto_id, p.nombre, dv.cantidad, dv.precio_unitario_historico, dv.subtotal, dv.unidad_nombre
        FROM detalle_ventas dv JOIN productos p ON p.id = dv.producto_id
       WHERE dv.venta_id = $1 ORDER BY dv.id`,
     [venta.id]
