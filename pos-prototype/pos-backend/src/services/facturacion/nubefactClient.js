@@ -3,7 +3,7 @@ const {
   CODIGO_TIPO_DOCUMENTO_CLIENTE,
   MOTIVOS_NOTA_CREDITO,
   AFECTACION_IGV_A_TIPO_IGV_NUBEFACT,
-  CUBETA_POR_TIPO_IGV_NUBEFACT,
+  categorizarLineaIgv,
   fmt,
 } = require('./catalogosSunat');
 
@@ -94,15 +94,13 @@ function construirPayload(comprobante, empresa, lineas, comprobanteAfectado) {
 
   const items = lineas.map((l) => {
     const tipoIgv = AFECTACION_IGV_A_TIPO_IGV_NUBEFACT[l.producto.codigo_afectacion_igv] || 1;
-    const cubeta = CUBETA_POR_TIPO_IGV_NUBEFACT[tipoIgv] || 'gravada';
     const precio = Number(l.precio_unitario_historico);
     const subtotalTotal = Number(l.subtotal);
+    const { cubeta, base: subtotalSinIgv, igv: igvLinea } = categorizarLineaIgv(l.producto.codigo_afectacion_igv, subtotalTotal);
 
     // Solo lo gravado lleva IGV — exonerado/inafecto reportan su valor
-    // íntegro como subtotal, sin descontar nada.
+    // íntegro como valor unitario, sin descontar nada.
     const valorUnitario = cubeta === 'gravada' ? precio / (1 + 0.18) : precio;
-    const subtotalSinIgv = cubeta === 'gravada' ? Number((subtotalTotal / (1 + 0.18)).toFixed(2)) : subtotalTotal;
-    const igvLinea = cubeta === 'gravada' ? Number((subtotalTotal - subtotalSinIgv).toFixed(2)) : 0;
 
     cubetas[cubeta] += subtotalSinIgv;
     cubetas.igv += igvLinea;

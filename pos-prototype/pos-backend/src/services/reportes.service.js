@@ -49,10 +49,19 @@ async function reporteVentas(companyId, desdeIn, hastaIn) {
   // comprobante ORIGINAL de la venta (boleta/factura), nunca una nota de
   // crédito/débito posterior — esas también tienen este mismo venta_id
   // (ver notasCredito.service.js) y duplicarían la fila.
+  //
+  // El documento del cliente sale del COMPROBANTE (congelado al emitir,
+  // igual que su razón social) y no de la ficha viva del cliente — para
+  // un reporte fiscal importa qué se declaró en ESE momento, no cómo
+  // esté hoy la ficha. Un "recibo" (sin comprobante SUNAT) no tiene esa
+  // foto congelada, así que ahí sí se cae a la ficha del cliente.
   const { rows: detalle } = await pool.query(
     `SELECT v.id, v.fecha, v.total, v.metodo_pago, v.estado_documento,
             c.tipo_comprobante, c.serie, c.correlativo,
-            cl.razon_social_o_nombre AS cliente_nombre
+            c.operacion_gravada, c.operacion_exonerada, c.operacion_inafecta, c.igv,
+            COALESCE(c.cliente_tipo_documento::text, cl.tipo_documento::text) AS cliente_tipo_documento,
+            COALESCE(c.cliente_numero_documento, cl.numero_documento) AS cliente_numero_documento,
+            COALESCE(c.cliente_razon_social, cl.razon_social_o_nombre) AS cliente_nombre
        FROM ventas v
        LEFT JOIN comprobantes_electronicos c ON c.venta_id = v.id AND c.comprobante_afectado_id IS NULL
        LEFT JOIN clientes cl ON cl.id = v.cliente_id

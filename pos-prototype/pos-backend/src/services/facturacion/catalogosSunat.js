@@ -71,6 +71,27 @@ function fmt(n) {
   return Number(n).toFixed(2);
 }
 
+/**
+ * Categoriza el valor de UNA línea (subtotal, con IGV incluido) según la
+ * afectación tributaria del producto. Compartida por ventas.service.js,
+ * notasCredito.service.js y nubefactClient.js para que las 3 partes
+ * categoricen SIEMPRE igual — antes cada una calculaba el IGV por su
+ * cuenta asumiendo "todo gravado", así que un producto exonerado/
+ * inafecto quedaba mal categorizado en alguna de las tres.
+ * @returns {{ cubeta: 'gravada'|'exonerada'|'inafecta', base: number, igv: number }}
+ *   `base` es el valor SIN IGV; `igv` es el IGV de esta línea (0 si no es gravada).
+ */
+function categorizarLineaIgv(codigoAfectacionIgv, subtotalConIgv) {
+  const tipoIgv = AFECTACION_IGV_A_TIPO_IGV_NUBEFACT[codigoAfectacionIgv] || 1;
+  const cubeta = CUBETA_POR_TIPO_IGV_NUBEFACT[tipoIgv] || 'gravada';
+  if (cubeta !== 'gravada') {
+    return { cubeta, base: Number(Number(subtotalConIgv).toFixed(2)), igv: 0 };
+  }
+  const base = Number((Number(subtotalConIgv) / (1 + IGV_TASA)).toFixed(2));
+  const igv = Number((Number(subtotalConIgv) - base).toFixed(2));
+  return { cubeta, base, igv };
+}
+
 module.exports = {
   CODIGO_TIPO_COMPROBANTE,
   CODIGO_TIPO_DOCUMENTO_CLIENTE,
@@ -79,6 +100,7 @@ module.exports = {
   MOTIVOS_ANULACION_TOTAL,
   AFECTACION_IGV_A_TIPO_IGV_NUBEFACT,
   CUBETA_POR_TIPO_IGV_NUBEFACT,
+  categorizarLineaIgv,
   IGV_TASA,
   fmt,
 };

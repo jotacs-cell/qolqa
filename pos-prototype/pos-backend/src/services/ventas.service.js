@@ -2,8 +2,7 @@ const { conTransaccion } = require('../config/db');
 const ApiError = require('../utils/ApiError');
 const { reservarCorrelativo } = require('./correlativos.service');
 const kardex = require('./kardex.service');
-
-const IGV = 0.18;
+const { categorizarLineaIgv } = require('./facturacion/catalogosSunat');
 
 /**
  * Registra una venta completa dentro de una única transacción SQL:
@@ -58,6 +57,8 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     // (total/1.18) es lo que antes producía descuadres de un céntimo
     // entre el documento y la suma de sus propias líneas.
     let operacionGravadaAcumulada = 0;
+    let operacionExoneradaAcumulada = 0;
+    let operacionInafectaAcumulada = 0;
     let igvAcumulado = 0;
     const lineas = [];
 
@@ -67,7 +68,7 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       }
 
       const { rows } = await client.query(
-        `SELECT id, precio_venta, estado, unidad_medida,
+        `SELECT id, precio_venta, estado, unidad_medida, codigo_afectacion_igv,
                 unidad_mayor_nombre, unidad_mayor_codigo_sunat, unidad_mayor_factor, unidad_mayor_precio_venta
            FROM productos WHERE id = $1 AND company_id = $2 FOR UPDATE`,
         [item.producto_id, companyId]
@@ -118,9 +119,15 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       const subtotal = Number((precioUnitario * item.cantidad).toFixed(2));
       total += subtotal;
 
-      const gravadaLinea = Number((subtotal / (1 + IGV)).toFixed(2));
-      const igvLinea = Number((subtotal - gravadaLinea).toFixed(2));
-      operacionGravadaAcumulada += gravadaLinea;
+      // Categoriza SIEMPRE igual que nubefactClient.js (comparten
+      // catalogosSunat.js#categorizarLineaIgv) — antes esto asumía que
+      // TODO era gravado, así que un producto exonerado/inafecto quedaba
+      // mal categorizado en lo que se guarda acá aunque el envío real a
+      // NubeFacT ya lo categorizara bien.
+      const { cubeta, base: baseLinea, igv: igvLinea } = categorizarLineaIgv(producto.codigo_afectacion_igv, subtotal);
+      if (cubeta === 'exonerada') operacionExoneradaAcumulada += baseLinea;
+      else if (cubeta === 'inafecta') operacionInafectaAcumulada += baseLinea;
+      else operacionGravadaAcumulada += baseLinea;
       igvAcumulado += igvLinea;
 
       lineas.push({
@@ -186,6 +193,8 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     const { serie, correlativo } = await reservarCorrelativo(client, companyId, tipoComprobante);
 
     const operacionGravada = Number(operacionGravadaAcumulada.toFixed(2));
+    const operacionExonerada = Number(operacionExoneradaAcumulada.toFixed(2));
+    const operacionInafecta = Number(operacionInafectaAcumulada.toFixed(2));
     const igv = Number(igvAcumulado.toFixed(2));
 
     let clienteDatos = { tipo_documento: 'sin_documento', numero_documento: null, razon_social: 'Clientes varios', direccion: null };
@@ -211,13 +220,13 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       `INSERT INTO comprobantes_electronicos
          (company_id, venta_id, tipo_comprobante, serie, correlativo,
           cliente_tipo_documento, cliente_numero_documento, cliente_razon_social, cliente_direccion,
-          operacion_gravada, igv, total, estado_sunat)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pendiente')
+          operacion_gravada, operacion_exonerada, operacion_inafecta, igv, total, estado_sunat)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'pendiente')
        RETURNING id`,
       [
         companyId, venta.id, tipoComprobante, serie, correlativo,
         clienteDatos.tipo_documento, clienteDatos.numero_documento, clienteDatos.razon_social, clienteDatos.direccion,
-        operacionGravada, igv, total,
+        operacionGravada, operacionExonerada, operacionInafecta, igv, total,
       ]
     );
 

@@ -699,6 +699,11 @@ CREATE TABLE comprobantes_electronicos (
 
     moneda                  CHAR(3)             NOT NULL DEFAULT 'PEN',
     operacion_gravada       NUMERIC(12,2)       NOT NULL CHECK (operacion_gravada >= 0),
+    -- Ver migración 018_afectacion_igv_comprobante.sql — calculadas línea
+    -- por línea según productos.codigo_afectacion_igv, mismo criterio que
+    -- nubefactClient.js usa para el envío real (catalogosSunat.js#categorizarLineaIgv).
+    operacion_exonerada     NUMERIC(12,2)       NOT NULL DEFAULT 0 CHECK (operacion_exonerada >= 0),
+    operacion_inafecta      NUMERIC(12,2)       NOT NULL DEFAULT 0 CHECK (operacion_inafecta >= 0),
     igv                     NUMERIC(12,2)       NOT NULL CHECK (igv >= 0),
     total                   NUMERIC(12,2)       NOT NULL CHECK (total >= 0),
 

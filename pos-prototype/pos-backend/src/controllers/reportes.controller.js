@@ -7,6 +7,9 @@ function money(n) {
   return 'S/ ' + Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const TIPO_DOC_LABEL = { factura: 'Factura', boleta: 'Boleta', nota_credito: 'Nota de crédito', nota_debito: 'Nota de débito' };
+const DOC_CLIENTE_LABEL = { dni: 'DNI', ruc: 'RUC', ce: 'Carné Ext.', pasaporte: 'Pasaporte', sin_documento: '' };
+
 async function nombreEmpresa(companyId) {
   const { rows } = await pool.query('SELECT razon_social, nombre_comercial FROM empresas WHERE id = $1', [companyId]);
   return (rows[0] && (rows[0].nombre_comercial || rows[0].razon_social)) || 'FacturasPOS';
@@ -35,18 +38,49 @@ function tablasVentas(r) {
       filas: r.porMetodo.map((x) => ({ metodo_pago: x.metodo_pago, cantidad: x.cantidad, total: money(x.total) })),
     },
     {
+      // Formato de "Registro de Ventas" — mismas columnas que espera un
+      // contador para la declaración mensual (fecha, tipo/serie/número de
+      // documento, datos del cliente, y el desglose valor venta/exonerado/
+      // IGV/total en vez de solo el total).
       titulo: 'Detalle',
       columnas: [
-        { clave: 'fecha', encabezado: 'Fecha' }, { clave: 'documento', encabezado: 'Documento' },
-        { clave: 'cliente', encabezado: 'Cliente' }, { clave: 'estado', encabezado: 'Estado' }, { clave: 'total', encabezado: 'Total' },
+        { clave: 'fecha', encabezado: 'Fecha' },
+        { clave: 'tipo_doc', encabezado: 'Tipo de doc.' },
+        { clave: 'serie', encabezado: 'Serie' },
+        { clave: 'numero', encabezado: 'Número' },
+        { clave: 'doc_cliente', encabezado: 'Doc. cliente' },
+        { clave: 'razon_social', encabezado: 'Razón social cliente' },
+        { clave: 'valor_venta', encabezado: 'Valor venta' },
+        { clave: 'exonerado', encabezado: 'Exonerado' },
+        { clave: 'igv', encabezado: 'IGV' },
+        { clave: 'total', encabezado: 'Total' },
+        { clave: 'medio_pago', encabezado: 'Medio de pago' },
       ],
-      filas: r.detalle.map((v) => ({
-        fecha: new Date(v.fecha).toLocaleString('es-PE'),
-        documento: v.serie ? `${v.serie}-${String(v.correlativo).padStart(6, '0')}` : `REC-${String(v.id).padStart(6, '0')}`,
-        cliente: v.cliente_nombre || 'Cliente varios',
-        estado: v.estado_documento === 'anulada' ? 'Anulada' : 'Emitida',
-        total: money(v.total),
-      })),
+      filas: r.detalle.map((v) => {
+        // Un "recibo" (venta sin comprobante SUNAT) no tiene desglose de
+        // impuestos propio — se muestra su total como valor de venta y
+        // sin IGV/exonerado, en vez de inventar una categorización que
+        // nunca se calculó para él.
+        const tieneComprobante = !!v.tipo_comprobante;
+        const valorVenta = tieneComprobante
+          ? Number(v.operacion_gravada) + Number(v.operacion_exonerada) + Number(v.operacion_inafecta)
+          : Number(v.total);
+        return {
+          fecha: new Date(v.fecha).toLocaleDateString('es-PE'),
+          tipo_doc: tieneComprobante ? (TIPO_DOC_LABEL[v.tipo_comprobante] || v.tipo_comprobante) : 'Recibo',
+          serie: v.serie || '—',
+          numero: v.correlativo != null ? String(v.correlativo).padStart(8, '0') : `REC-${String(v.id).padStart(6, '0')}`,
+          doc_cliente: v.cliente_numero_documento
+            ? `${DOC_CLIENTE_LABEL[v.cliente_tipo_documento] || ''} ${v.cliente_numero_documento}`.trim()
+            : '—',
+          razon_social: v.cliente_nombre || 'Cliente varios',
+          valor_venta: money(valorVenta),
+          exonerado: money(tieneComprobante ? v.operacion_exonerada : 0),
+          igv: money(tieneComprobante ? v.igv : 0),
+          total: money(v.total),
+          medio_pago: v.metodo_pago ? v.metodo_pago.charAt(0).toUpperCase() + v.metodo_pago.slice(1) : '—',
+        };
+      }),
     },
   ];
 }

@@ -6,7 +6,7 @@ const {
   MOTIVOS_NOTA_CREDITO,
   MOTIVOS_QUE_RESTITUYEN_STOCK,
   MOTIVOS_ANULACION_TOTAL,
-  IGV_TASA,
+  categorizarLineaIgv,
 } = require('./facturacion/catalogosSunat');
 
 /**
@@ -127,13 +127,19 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
     // total (total/1.18) puede descuadrar un céntimo.
     const total = Number(lineasNota.reduce((s, l) => s + Number(l.subtotal), 0).toFixed(2));
     let gravada = 0;
+    let exonerada = 0;
+    let inafecta = 0;
     let igv = 0;
     for (const l of lineasNota) {
-      const gravadaLinea = Number((Number(l.subtotal) / (1 + IGV_TASA)).toFixed(2));
-      gravada += gravadaLinea;
-      igv += Number((Number(l.subtotal) - gravadaLinea).toFixed(2));
+      const { cubeta, base, igv: igvLinea } = categorizarLineaIgv(l.codigo_afectacion_igv, l.subtotal);
+      if (cubeta === 'exonerada') exonerada += base;
+      else if (cubeta === 'inafecta') inafecta += base;
+      else gravada += base;
+      igv += igvLinea;
     }
     gravada = Number(gravada.toFixed(2));
+    exonerada = Number(exonerada.toFixed(2));
+    inafecta = Number(inafecta.toFixed(2));
     igv = Number(igv.toFixed(2));
 
     const serieForzada = original.tipo_comprobante === 'factura' ? 'FC01' : 'BC01';
@@ -156,14 +162,14 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
          (company_id, venta_id, tipo_comprobante, serie, correlativo, comprobante_afectado_id,
           codigo_motivo, motivo_detalle, lineas_nota,
           cliente_tipo_documento, cliente_numero_documento, cliente_razon_social, cliente_direccion,
-          operacion_gravada, igv, total, estado_sunat)
-       VALUES ($1,$2,'nota_credito',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pendiente')
+          operacion_gravada, operacion_exonerada, operacion_inafecta, igv, total, estado_sunat)
+       VALUES ($1,$2,'nota_credito',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pendiente')
        RETURNING id`,
       [
         companyId, original.venta_id, serie, correlativo, original.id,
         codigoMotivo, motivoDetalle.trim(), JSON.stringify(lineasNotaJson),
         original.cliente_tipo_documento, original.cliente_numero_documento, original.cliente_razon_social, original.cliente_direccion,
-        gravada, igv, total,
+        gravada, exonerada, inafecta, igv, total,
       ]
     );
     const notaId = notaRows[0].id;

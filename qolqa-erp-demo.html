@@ -4702,14 +4702,34 @@
           tablaReporteHtml('Por método de pago', [{ clave: 'metodo_pago', encabezado: 'Método' }, { clave: 'cantidad', encabezado: 'Cantidad', num: true }, { clave: 'totalFmt', encabezado: 'Total', num: true }],
             r.porMetodo.map(function (x) { return { metodo_pago: x.metodo_pago, cantidad: x.cantidad, totalFmt: money(x.total) }; })) +
           tablaReporteHtml('Detalle (' + r.detalle.length + ')', [
-            { clave: 'fecha', encabezado: 'Fecha' }, { clave: 'documento', encabezado: 'Documento' }, { clave: 'cliente', encabezado: 'Cliente' }, { clave: 'estado', encabezado: 'Estado' }, { clave: 'totalFmt', encabezado: 'Total', num: true },
+            { clave: 'fecha', encabezado: 'Fecha' }, { clave: 'tipoDoc', encabezado: 'Tipo de doc.' },
+            { clave: 'serie', encabezado: 'Serie' }, { clave: 'numero', encabezado: 'Número' },
+            { clave: 'docCliente', encabezado: 'Doc. cliente' }, { clave: 'razonSocial', encabezado: 'Razón social cliente' },
+            { clave: 'valorVentaFmt', encabezado: 'Valor venta', num: true }, { clave: 'exoneradoFmt', encabezado: 'Exonerado', num: true },
+            { clave: 'igvFmt', encabezado: 'IGV', num: true }, { clave: 'totalFmt', encabezado: 'Total', num: true },
+            { clave: 'medioPago', encabezado: 'Medio de pago' },
           ], r.detalle.map(function (v) {
+            // Un "recibo" (sin comprobante SUNAT) no tiene desglose de
+            // impuestos propio — se muestra su total como valor de venta,
+            // sin IGV/exonerado inventado.
+            var tieneComprobante = !!v.tipo_comprobante;
+            var valorVenta = tieneComprobante
+              ? Number(v.operacion_gravada) + Number(v.operacion_exonerada) + Number(v.operacion_inafecta)
+              : Number(v.total);
+            var TIPO_DOC_LABEL = { factura: 'Factura', boleta: 'Boleta', nota_credito: 'Nota de crédito', nota_debito: 'Nota de débito' };
+            var DOC_CLIENTE_LABEL = { dni: 'DNI', ruc: 'RUC', ce: 'Carné Ext.', pasaporte: 'Pasaporte', sin_documento: '' };
             return {
               fecha: fechaCorta(v.fecha),
-              documento: v.serie ? (v.serie + '-' + String(v.correlativo).padStart(6, '0')) : ('REC-' + String(v.id).padStart(6, '0')),
-              cliente: v.cliente_nombre || 'Cliente varios',
-              estado: v.estado_documento === 'anulada' ? 'Anulada' : 'Emitida',
+              tipoDoc: tieneComprobante ? (TIPO_DOC_LABEL[v.tipo_comprobante] || v.tipo_comprobante) : 'Recibo',
+              serie: v.serie || '—',
+              numero: v.correlativo != null ? String(v.correlativo).padStart(8, '0') : ('REC-' + String(v.id).padStart(6, '0')),
+              docCliente: v.cliente_numero_documento ? ((DOC_CLIENTE_LABEL[v.cliente_tipo_documento] || '') + ' ' + v.cliente_numero_documento).trim() : '—',
+              razonSocial: v.cliente_nombre || 'Cliente varios',
+              valorVentaFmt: money(valorVenta),
+              exoneradoFmt: money(tieneComprobante ? v.operacion_exonerada : 0),
+              igvFmt: money(tieneComprobante ? v.igv : 0),
               totalFmt: money(v.total),
+              medioPago: v.metodo_pago ? (v.metodo_pago.charAt(0).toUpperCase() + v.metodo_pago.slice(1)) : '—',
             };
           }));
       }
