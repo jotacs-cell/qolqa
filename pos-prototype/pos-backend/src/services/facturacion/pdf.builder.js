@@ -14,6 +14,21 @@ const AZUL = '#1d3557';
 const GRIS = '#6c6877';
 const GRIS_CLARO = '#e3e1ea';
 
+/** empresa.logo_base64 se guarda como data URI ("data:image/png;base64,...",
+ * ver empresas.controller.js#actualizarLogo) — pdfkit necesita el Buffer
+ * crudo, no el data URI completo. Devuelve null ante cualquier formato
+ * raro en vez de lanzar: un logo corrupto nunca debe impedir emitir el
+ * comprobante, solo se imprime sin logo. */
+function decodificarLogoBase64(dataUri) {
+  const match = /^data:image\/(png|jpe?g);base64,([a-zA-Z0-9+/=]+)$/.exec(dataUri || '');
+  if (!match) return null;
+  try {
+    return Buffer.from(match[2], 'base64');
+  } catch (err) {
+    return null;
+  }
+}
+
 /** Texto y color que se estampan en el PDF para que el estado ante SUNAT sea visible
  * en el papel, no solo consultable en el sistema — esto es lo que el cajero o el
  * cliente ven al imprimir. */
@@ -67,10 +82,21 @@ function generarPdfComprobante(comprobante, empresa, lineas, comprobanteAfectado
       const idDocumento = `${comprobante.serie}-${String(comprobante.correlativo).padStart(8, '0')}`;
 
       // ---------- encabezado ----------
-      doc.fontSize(14).fillColor(AZUL).font('Helvetica-Bold').text(empresa.razon_social, 42, 42, { width: 320 });
+      const logoBuffer = decodificarLogoBase64(empresa.logo_base64);
+      const textoEncabezadoX = logoBuffer ? 100 : 42;
+      const textoEncabezadoAncho = logoBuffer ? 262 : 320;
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, 42, 40, { fit: [50, 50] });
+        } catch (err) {
+          // Logo en un formato que pdfkit no puede decodificar — se ignora,
+          // nunca debe impedir emitir/imprimir el comprobante.
+        }
+      }
+      doc.fontSize(14).fillColor(AZUL).font('Helvetica-Bold').text(empresa.razon_social, textoEncabezadoX, 42, { width: textoEncabezadoAncho });
       doc.fontSize(9).fillColor(GRIS).font('Helvetica')
-        .text(`RUC ${empresa.ruc}`, { width: 320 })
-        .text(empresa.direccion, { width: 320 });
+        .text(`RUC ${empresa.ruc}`, { width: textoEncabezadoAncho })
+        .text(empresa.direccion, { width: textoEncabezadoAncho });
 
       doc.roundedRect(380, 40, 172, 62, 4).stroke(GRIS_CLARO);
       doc.fontSize(9).fillColor(AZUL).font('Helvetica-Bold')
@@ -286,6 +312,16 @@ function generarTicketComprobante(comprobante, empresa, lineas, anchoMm) {
         doc.text('-'.repeat(cantidad), { width: ancho, align: 'center', lineBreak: false });
       }
 
+      const logoBufferTicket = decodificarLogoBase64(empresa.logo_base64);
+      if (logoBufferTicket) {
+        try {
+          const logoAncho = Math.min(80, ancho * 0.6);
+          doc.image(logoBufferTicket, (ANCHO - logoAncho) / 2, doc.y, { fit: [logoAncho, 40] });
+          doc.moveDown(3);
+        } catch (err) {
+          // Logo en un formato que pdfkit no puede decodificar — se ignora.
+        }
+      }
       doc.font('Helvetica-Bold').fontSize(fs + 2).text(empresa.razon_social, { width: ancho, align: 'center' });
       doc.font('Helvetica').fontSize(fs)
         .text(`RUC ${empresa.ruc}`, { width: ancho, align: 'center' })

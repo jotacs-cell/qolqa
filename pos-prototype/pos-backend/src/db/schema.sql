@@ -605,6 +605,12 @@ ALTER TABLE empresas ADD COLUMN catalogo_slug VARCHAR(80) UNIQUE;
 ALTER TABLE empresas ADD COLUMN catalogo_whatsapp VARCHAR(20);
 ALTER TABLE productos ADD COLUMN imagen_url TEXT;
 
+-- Logo de la empresa en los comprobantes impresos (ver migración
+-- 017_logo_empresa.sql) — data URI, no archivo en disco: Railway no da
+-- almacenamiento persistente al backend, un redeploy borraría cualquier
+-- archivo subido.
+ALTER TABLE empresas ADD COLUMN logo_base64 TEXT;
+
 -- =====================================================================
 -- Métodos de pago — cuentas bancarias propias, Yape/Plin, y un límite de
 -- crédito por cliente para acotar cuánto puede fiarse (ventas.estado_pago

@@ -208,6 +208,34 @@ async function listarComprobantesPago(req, res) {
   res.json(data);
 }
 
+/** Logo propio para el encabezado de facturas/boletas/tickets impresos
+ * (ver pdf.builder.js). Se guarda como data URI directamente en la fila
+ * de la empresa — no hay almacenamiento de archivos persistente en este
+ * backend (ver migración 017_logo_empresa.sql). */
+async function obtenerLogo(req, res) {
+  const { rows } = await pool.query('SELECT logo_base64 FROM empresas WHERE id = $1', [req.usuario.companyId]);
+  res.json({ logo_base64: rows[0] ? rows[0].logo_base64 : null });
+}
+
+const LOGO_REGEX = /^data:image\/(png|jpe?g);base64,[a-zA-Z0-9+/=]+$/;
+const LOGO_MAX_BYTES = 2 * 1024 * 1024; // 2MB decoded — de sobra para un logo, no para fotos
+
+async function actualizarLogo(req, res) {
+  const { logo_base64 } = req.body;
+  // null/'' = quitar el logo (vuelve a mostrarse solo el nombre de la empresa).
+  if (logo_base64 != null && logo_base64 !== '') {
+    if (!LOGO_REGEX.test(logo_base64)) {
+      throw new ApiError(422, 'LOGO_INVALIDO', 'El logo debe ser una imagen PNG o JPG.');
+    }
+    const bytesAproximados = (logo_base64.length * 3) / 4;
+    if (bytesAproximados > LOGO_MAX_BYTES) {
+      throw new ApiError(422, 'LOGO_MUY_PESADO', 'El logo no puede pesar más de 2MB — usa una imagen más chica.');
+    }
+  }
+  await pool.query('UPDATE empresas SET logo_base64 = $1 WHERE id = $2', [logo_base64 || null, req.usuario.companyId]);
+  res.json({ logo_base64: logo_base64 || null });
+}
+
 module.exports = {
   crear,
   obtenerCatalogo,
@@ -217,4 +245,6 @@ module.exports = {
   obtenerSuscripcion,
   subirComprobantePago,
   listarComprobantesPago,
+  obtenerLogo,
+  actualizarLogo,
 };

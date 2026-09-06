@@ -1076,6 +1076,7 @@
           <div class="settings-nav" id="settingsNav">
             <button class="s-item active" data-panel="empresa">Empresa</button>
             <button class="s-item" data-panel="catalogo">Catálogo virtual</button>
+            <button class="s-item" data-panel="logo">Logo e impresión</button>
             <button class="s-item" data-panel="sucursales">Sucursales</button>
             <button class="s-item" data-panel="usuarios">Usuarios y roles</button>
             <button class="s-item" data-panel="series">Series y comprobantes</button>
@@ -1095,6 +1096,13 @@
               <div class="card">
                 <div class="card-head"><h3>Catálogo virtual</h3></div>
                 <div class="card-body refreshable" id="catalogoVirtualBody"></div>
+              </div>
+            </div>
+
+            <div class="settings-panel" id="panel-logo">
+              <div class="card">
+                <div class="card-head"><h3>Logo e impresión</h3></div>
+                <div class="card-body refreshable" id="logoEmpresaBody"></div>
               </div>
             </div>
 
@@ -2159,6 +2167,7 @@
       renderCuentasPorPagar();
       renderCrm();
       renderCatalogoVirtual();
+      renderLogoEmpresa();
       renderMetodosPago();
       renderSucursales();
       renderUsuarios();
@@ -2555,7 +2564,7 @@
      * ============================================================ */
     async function cargarReales() {
       try {
-        var [productosRes, clientesRes, ventasRes, cotizacionesRes, pedidosRes, almacenesRes, kardexRes, transferenciasRes, proveedoresRes, comprasRes, ordenesCompraRes, cajaActualRes, cajaHistorialRes, oportunidadesRes, catalogoRes, cuentasBancariasRes, pagosRes, usuariosRes, suscripcionRes, comprobantesPagoRes] = await Promise.all([
+        var [productosRes, clientesRes, ventasRes, cotizacionesRes, pedidosRes, almacenesRes, kardexRes, transferenciasRes, proveedoresRes, comprasRes, ordenesCompraRes, cajaActualRes, cajaHistorialRes, oportunidadesRes, catalogoRes, cuentasBancariasRes, pagosRes, usuariosRes, logoRes, suscripcionRes, comprobantesPagoRes] = await Promise.all([
           posFetch('/productos?limit=100'),
           posFetch('/clientes?limit=100'),
           posFetch('/ventas?limit=50'),
@@ -2574,6 +2583,7 @@
           posFetch('/cuentas-bancarias'),
           posFetch('/empresas/mi-empresa/pagos'),
           posFetch('/auth/usuarios'),
+          posFetch('/empresas/mi-empresa/logo'),
           // Estas dos dependen del proxy hacia qolqa-backend (otro
           // servicio) — si falla, no debe tumbar el resto de datos reales.
           posFetch('/empresas/mi-empresa/suscripcion').catch(function () { return null; }),
@@ -2591,6 +2601,7 @@
         REAL.cuentasBancarias = cuentasBancariasRes.data || [];
         REAL.pagos = pagosRes || {};
         REAL.usuarios = usuariosRes.data || [];
+        REAL.logo = logoRes || {};
         REAL.proveedores = proveedoresRes.data || [];
         REAL.compras = comprasRes.data || [];
         REAL.ordenesCompra = ordenesCompraRes.data || [];
@@ -2606,7 +2617,7 @@
           renderPedidos(); renderAlmacenes(); renderKardex(); renderTransferencias();
           renderProveedores(); renderCompras(); renderOrdenesCompra();
           renderCaja(); renderCuentasPorCobrar(); renderCuentasPorPagar();
-          renderCrm(); renderCatalogoVirtual(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
+          renderCrm(); renderCatalogoVirtual(); renderLogoEmpresa(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
         }
       } catch (e) {
         // pos-backend no disponible: todas las vistas reales se quedan con datos de muestra.
@@ -3249,6 +3260,68 @@
           }).catch(function () {
             toast('No se pudo copiar — copia el enlace manualmente.', 'error');
           });
+        });
+      }
+    }
+
+    /* Logo de la empresa — se guarda como data URI directamente en la
+     * fila de la empresa (no hay almacenamiento de archivos en este
+     * backend, ver empresas.controller.js#actualizarLogo). Aparece en
+     * el encabezado de facturas/boletas/tickets impresos (pdf.builder.js). */
+    function renderLogoEmpresa() {
+      var cont = document.getElementById('logoEmpresaBody');
+      if (!cont) return;
+      if (!(esFs() && REAL.cargado)) {
+        cont.innerHTML = '<p style="color:var(--ink-faint);font-size:12.8px">Cambia a Ferretería San Martín para configurar tu logo real.</p>';
+        return;
+      }
+      var logo = (REAL.logo || {}).logo_base64;
+      cont.innerHTML =
+        '<p style="font-size:12.8px;color:var(--ink-soft);margin:0 0 14px">Aparece en el encabezado de las facturas, boletas y tickets que imprimes o descargas en PDF. Formatos PNG o JPG, máximo 2MB.</p>' +
+        (logo
+          ? '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">' +
+            '<img src="' + esc(logo) + '" alt="Logo actual" style="max-width:140px;max-height:80px;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff">' +
+            '<button type="button" class="btn-ghost" id="btnQuitarLogo">Quitar logo</button>' +
+            '</div>'
+          : '') +
+        '<input type="file" id="inputLogoEmpresa" accept="image/png,image/jpeg" style="font-size:12.8px">';
+
+      document.getElementById('inputLogoEmpresa').addEventListener('change', async function (e) {
+        var archivo = e.target.files[0];
+        if (!archivo) return;
+        if (!/^image\/(png|jpe?g)$/.test(archivo.type)) {
+          toast('El logo debe ser una imagen PNG o JPG.', 'error');
+          e.target.value = '';
+          return;
+        }
+        if (archivo.size > 2 * 1024 * 1024) {
+          toast('El logo no puede pesar más de 2MB — usa una imagen más chica.', 'error');
+          e.target.value = '';
+          return;
+        }
+        var lector = new FileReader();
+        lector.onload = async function () {
+          try {
+            REAL.logo = await posFetch('/empresas/mi-empresa/logo', { method: 'PUT', body: JSON.stringify({ logo_base64: lector.result }) });
+            toast('Logo actualizado.', 'success');
+            renderLogoEmpresa();
+          } catch (err) {
+            toast(err.message, 'error');
+          }
+        };
+        lector.readAsDataURL(archivo);
+      });
+
+      var btnQuitar = document.getElementById('btnQuitarLogo');
+      if (btnQuitar) {
+        btnQuitar.addEventListener('click', async function () {
+          try {
+            REAL.logo = await posFetch('/empresas/mi-empresa/logo', { method: 'PUT', body: JSON.stringify({ logo_base64: null }) });
+            toast('Logo eliminado.', 'success');
+            renderLogoEmpresa();
+          } catch (err) {
+            toast(err.message, 'error');
+          }
         });
       }
     }
@@ -5981,7 +6054,7 @@
           document.getElementById('btnDetRecibo').addEventListener('click', function () { imprimirReciboInterno(v); });
         }
         if (puedeNotaCredito) {
-          document.getElementById('btnDetNotaCredito').addEventListener('click', function () { abrirNotaCreditoDesdeDetalle(comp.id, codigoDoc); });
+          document.getElementById('btnDetNotaCredito').addEventListener('click', function () { abrirNotaCreditoDesdeDetalle(comp.id, codigoDoc, v.items); });
         }
         var btnRegistrarCobro = document.getElementById('btnDetRegistrarCobro');
         if (btnRegistrarCobro) {
@@ -5994,27 +6067,87 @@
 
     /** Nota de crédito de anulación total — reutiliza PATCH /comprobantes/:id/anular,
      * que ya arma la nota (motivo '01', todas las líneas) y la envía a SUNAT. */
-    function abrirNotaCreditoDesdeDetalle(comprobanteId, codigoDoc) {
+    // Catálogo 09 de SUNAT (motivo de nota de crédito) — mismo listado
+    // que catalogosSunat.js#MOTIVOS_NOTA_CREDITO en el backend, solo
+    // hace falta para la nota PARCIAL (la anulación total usa PATCH
+    // .../anular, que ya fija codigo_motivo='01' del lado del servidor).
+    var MOTIVOS_NOTA_CREDITO = [
+      ['01', 'Anulación de la operación'], ['02', 'Anulación por error en el RUC'],
+      ['03', 'Corrección por error en la descripción'], ['04', 'Descuento global'],
+      ['05', 'Descuento por ítem'], ['06', 'Devolución total'], ['07', 'Devolución por ítem'],
+      ['08', 'Bonificación'], ['09', 'Disminución en el valor'], ['10', 'Otros conceptos'],
+      ['11', 'Ajustes de operaciones de exportación'], ['12', 'Ajustes afectos al IVAP'],
+    ];
+    /** items: los mismos que abrirDetalleVentaReal ya cargó (v.items) —
+     * cada uno con producto_id, nombre, cantidad, unidad_nombre. */
+    function abrirNotaCreditoDesdeDetalle(comprobanteId, codigoDoc, items) {
       openModal(
-        '<div class="modal-head"><div><h3 id="modalTitle">Nota de crédito</h3><p>Anula ' + esc(codigoDoc) + ' por completo.</p></div>' +
+        '<div class="modal-head"><div><h3 id="modalTitle">Nota de crédito</h3><p>' + esc(codigoDoc) + '</p></div>' +
         '<button class="modal-close" data-close aria-label="Cerrar">&times;</button></div>' +
         '<div class="modal-body"><form id="formNotaCredito" novalidate>' +
-        '<div class="field" data-field="motivo"><label>Motivo</label><input type="text" name="motivo" placeholder="Ej. Anulación de la operación"><span class="err">Escribe el motivo.</span></div>' +
+        '<div class="field"><label style="display:flex;align-items:center;gap:18px;font-weight:500;cursor:pointer">' +
+        '<span style="display:flex;align-items:center;gap:6px"><input type="radio" name="alcance" value="todo" checked> Anular todo</span>' +
+        '<span style="display:flex;align-items:center;gap:6px"><input type="radio" name="alcance" value="parcial"> Nota de crédito parcial</span>' +
+        '</label></div>' +
+        '<div id="camposParcial" style="display:none">' +
+        '<table class="items-table"><thead><tr><th></th><th>Producto</th><th class="col-num">Vendido</th><th class="col-num">A acreditar</th></tr></thead><tbody>' +
+        items.map(function (it, i) {
+          var unidadTxt = it.unidad_nombre && it.unidad_nombre !== 'UNIDAD' ? ' ' + esc(it.unidad_nombre) : '';
+          return '<tr>' +
+            '<td><input type="checkbox" class="nc-item-check" data-idx="' + i + '"></td>' +
+            '<td>' + esc(it.nombre) + '</td>' +
+            '<td class="col-num mono">' + it.cantidad + unidadTxt + '</td>' +
+            '<td class="col-num"><input type="number" class="nc-item-cantidad mono" data-idx="' + i + '" min="1" max="' + it.cantidad + '" value="' + it.cantidad + '" style="width:70px" disabled></td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table>' +
+        '<div class="field" data-field="codigo_motivo" style="margin-top:10px"><label>Motivo (catálogo SUNAT)</label><select name="codigo_motivo">' +
+        MOTIVOS_NOTA_CREDITO.map(function (m) { return '<option value="' + m[0] + '">' + m[0] + ' — ' + m[1] + '</option>'; }).join('') +
+        '</select></div>' +
+        '</div>' +
+        '<div class="field" data-field="motivo_detalle" style="margin-top:10px"><label>Detalle del motivo</label><input type="text" name="motivo_detalle" placeholder="Ej. Cliente devolvió el producto dañado"><span class="err">Escribe el motivo.</span></div>' +
         '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new">Emitir nota de crédito</button></div>' +
         '</form></div>'
       );
       var form = document.getElementById('formNotaCredito');
+      form.querySelectorAll('input[name=alcance]').forEach(function (r) {
+        r.addEventListener('change', function () {
+          document.getElementById('camposParcial').style.display = form.alcance.value === 'parcial' ? 'block' : 'none';
+        });
+      });
+      form.querySelectorAll('.nc-item-check').forEach(function (chk) {
+        chk.addEventListener('change', function () {
+          var cantidadInput = form.querySelector('.nc-item-cantidad[data-idx="' + chk.getAttribute('data-idx') + '"]');
+          cantidadInput.disabled = !chk.checked;
+        });
+      });
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         clearErrors(form);
-        var motivo = form.motivo.value.trim();
-        if (!motivo) { fieldError(form.querySelector('[data-field=motivo]'), 'Escribe el motivo.'); return; }
+        var motivoDetalle = form.motivo_detalle.value.trim();
+        if (!motivoDetalle) { fieldError(form.querySelector('[data-field=motivo_detalle]'), 'Escribe el motivo.'); return; }
+        var esParcial = form.alcance.value === 'parcial';
         var btn = form.querySelector('button[type=submit]');
         btn.disabled = true;
         try {
-          await posFetch('/comprobantes/' + comprobanteId + '/anular', { method: 'PATCH', body: JSON.stringify({ motivo: motivo }) });
+          if (!esParcial) {
+            await posFetch('/comprobantes/' + comprobanteId + '/anular', { method: 'PATCH', body: JSON.stringify({ motivo: motivoDetalle }) });
+            toast('Nota de crédito emitida — ' + codigoDoc + ' quedó anulado.', 'success');
+          } else {
+            var itemsSeleccionados = [];
+            form.querySelectorAll('.nc-item-check:checked').forEach(function (chk) {
+              var idx = Number(chk.getAttribute('data-idx'));
+              var cantidadInput = form.querySelector('.nc-item-cantidad[data-idx="' + idx + '"]');
+              itemsSeleccionados.push({ producto_id: items[idx].producto_id, cantidad: Number(cantidadInput.value) });
+            });
+            if (!itemsSeleccionados.length) { toast('Selecciona al menos un producto para acreditar.', 'error'); btn.disabled = false; return; }
+            await posFetch('/comprobantes/' + comprobanteId + '/notas-credito', {
+              method: 'POST',
+              body: JSON.stringify({ codigo_motivo: form.codigo_motivo.value, motivo_detalle: motivoDetalle, items: itemsSeleccionados }),
+            });
+            toast('Nota de crédito parcial emitida.', 'success');
+          }
           closeModal();
-          toast('Nota de crédito emitida — ' + codigoDoc + ' quedó anulado.', 'success');
           await cargarReales();
         } catch (err) {
           btn.disabled = false;
