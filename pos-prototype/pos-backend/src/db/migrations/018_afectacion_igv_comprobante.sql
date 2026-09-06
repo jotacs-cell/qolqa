@@ -7,7 +7,7 @@
 -- TODO lo vendido fuera gravado al 18%, sin importar la afectación IGV
 -- real de cada producto (ver productos.codigo_afectacion_igv). Ahora se
 -- guardan también las cubetas exonerada/inafecta, calculadas línea por
--- línea con el mismo criterio que nubefactClient.js usa para el envío
+-- línea con el mismo criterio que adapters/nubefact.adapter.js usa para el envío
 -- real (ver catalogosSunat.js#categorizarLineaIgv).
 -- =====================================================================
 

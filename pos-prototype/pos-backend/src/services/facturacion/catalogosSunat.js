@@ -49,9 +49,9 @@ const IGV_TASA = 0.18;
 // donación/muestras/exportación (11-16, 21, 31-36, 40) no tienen
 // equivalente acá porque esta caja no vende retiros ni exporta. La
 // columna derecha es el código propio de NubeFacT para `tipo_de_igv` —
-// igual que el resto de nubefactClient.js, sale de su documentación
+// igual que el resto de adapters/nubefact.adapter.js, sale de su documentación
 // PÚBLICA, no de su manual verificado: revisar antes de confiar en
-// producción real (ver advertencia al inicio de nubefactClient.js).
+// producción real (ver advertencia al inicio de adapters/nubefact.adapter.js).
 const AFECTACION_IGV_A_TIPO_IGV_NUBEFACT = {
   '10': 1, // Gravado - Operación Onerosa
   '20': 7, // Exonerado - Operación Onerosa
@@ -74,7 +74,7 @@ function fmt(n) {
 /**
  * Categoriza el valor de UNA línea (subtotal, con IGV incluido) según la
  * afectación tributaria del producto. Compartida por ventas.service.js,
- * notasCredito.service.js y nubefactClient.js para que las 3 partes
+ * notasCredito.service.js y adapters/nubefact.adapter.js para que las 3 partes
  * categoricen SIEMPRE igual — antes cada una calculaba el IGV por su
  * cuenta asumiendo "todo gravado", así que un producto exonerado/
  * inafecto quedaba mal categorizado en alguna de las tres.

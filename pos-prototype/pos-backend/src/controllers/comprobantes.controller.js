@@ -22,7 +22,7 @@ async function obtener(req, res) {
 
 /**
  * El XML UBL 2.1 ya no se genera ni se guarda localmente — lo arma y aloja
- * NubeFacT (ver nubefactClient.js). Este endpoint simplemente redirige al
+ * NubeFacT (ver adapters/nubefact.adapter.js). Este endpoint simplemente redirige al
  * enlace que NubeFacT devolvió cuando aceptó el comprobante.
  */
 async function descargarXml(req, res) {

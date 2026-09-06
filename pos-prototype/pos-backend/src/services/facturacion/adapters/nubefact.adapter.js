@@ -5,7 +5,7 @@ const {
   AFECTACION_IGV_A_TIPO_IGV_NUBEFACT,
   categorizarLineaIgv,
   fmt,
-} = require('./catalogosSunat');
+} = require('../catalogosSunat');
 
 // ---------------------------------------------------------------------
 // NubeFacT es un OSE (Operador de Servicios Electrónicos) homologado por
@@ -17,6 +17,14 @@ const {
 // sin uso y se eliminaron). Tampoco necesitas comprar un certificado
 // digital propio: NubeFacT firma con el suyo, dentro de su contrato de
 // OSE contigo.
+//
+// Este archivo es un ADAPTADOR — implementa el contrato común que
+// emisionElectronica.service.js espera de cualquier proveedor:
+//   async emitir(comprobante, empresa, lineas, comprobanteAfectado)
+//     -> { aceptado, codigo, descripcion, enlacePdf, enlaceXml, enlaceCdr, hash }
+// Nada fuera de este archivo (y de emisionElectronica.service.js, que lo
+// elige) sabe que existe NubeFacT — así, el día que se sume o se
+// reemplace por otro proveedor, el cambio queda contenido acá.
 //
 // ⚠️ IMPORTANTE — verifica esto antes de producción:
 // Los nombres de campo de abajo (tipo_de_comprobante, sunat_transaction,
@@ -43,7 +51,7 @@ const TIPO_COMPROBANTE_NUBEFACT = {
   nota_debito: 4,
 };
 
-async function enviarComprobanteNubefact(comprobante, empresa, lineas, comprobanteAfectado) {
+async function emitir(comprobante, empresa, lineas, comprobanteAfectado) {
   const ruta = empresa.nubefact_ruta;
   const token = empresa.nubefact_token;
   if (!ruta || !token) {
@@ -164,4 +172,4 @@ function formatearFecha(fecha) {
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
 }
 
-module.exports = { enviarComprobanteNubefact, construirPayload };
+module.exports = { emitir, construirPayload };

@@ -55,7 +55,7 @@ const ESTADO_SUNAT_COLOR = {
  * Genera la representación impresa (PDF) de un comprobante — lo que se
  * le entrega o envía al cliente. Es un documento informativo: lo único
  * con valor legal ante SUNAT es el XML firmado y su CDR, que arma y firma
- * NubeFacT (ver nubefactClient.js), no este archivo; este PDF solo lo
+ * NubeFacT (ver adapters/nubefact.adapter.js), no este archivo; este PDF solo lo
  * representa de forma legible, con el QR que exige la normativa de
  * comprobantes electrónicos y el estado SUNAT bien visible, para que no
  * haga falta abrir el sistema para saber si fue aceptado.

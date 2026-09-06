@@ -121,7 +121,7 @@ async function emitirNotaCredito({ companyId, comprobanteAfectadoId, codigoMotiv
     });
 
     // Gravada/IGV se acumulan LÍNEA POR LÍNEA (mismo criterio que
-    // ventas.service.js y nubefactClient.js) para que la suma de las
+    // ventas.service.js y adapters/nubefact.adapter.js) para que la suma de las
     // líneas siempre cuadre exacto con el total del documento — ver
     // ventas.service.js para el detalle de por qué recalcular desde el
     // total (total/1.18) puede descuadrar un céntimo.

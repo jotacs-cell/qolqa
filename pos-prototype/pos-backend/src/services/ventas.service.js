@@ -52,7 +52,7 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
     let total = 0;
     // Se acumulan gravada/IGV LÍNEA POR LÍNEA (nunca recalculados desde
     // el total al final) para que, sumadas, den EXACTO lo mismo que el
-    // total — igual criterio que nubefactClient.js usa para armar
+    // total — igual criterio que adapters/nubefact.adapter.js usa para armar
     // items[] al enviar a SUNAT. Calcularlo por separado desde el total
     // (total/1.18) es lo que antes producía descuadres de un céntimo
     // entre el documento y la suma de sus propias líneas.
@@ -119,7 +119,7 @@ async function registrarVenta({ companyId, usuarioId, clienteId, metodoPago, ite
       const subtotal = Number((precioUnitario * item.cantidad).toFixed(2));
       total += subtotal;
 
-      // Categoriza SIEMPRE igual que nubefactClient.js (comparten
+      // Categoriza SIEMPRE igual que adapters/nubefact.adapter.js (comparten
       // catalogosSunat.js#categorizarLineaIgv) — antes esto asumía que
       // TODO era gravado, así que un producto exonerado/inafecto quedaba
       // mal categorizado en lo que se guarda acá aunque el envío real a

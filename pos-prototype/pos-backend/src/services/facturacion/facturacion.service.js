@@ -1,5 +1,5 @@
 const { pool } = require('../../config/db');
-const { enviarComprobanteNubefact } = require('./nubefactClient');
+const emisionElectronica = require('./emisionElectronica.service');
 
 const TIPOS_NOTA = ['nota_credito', 'nota_debito'];
 
@@ -24,7 +24,7 @@ async function emitirComprobante(comprobanteId) {
   try {
     await marcarComoEnviado(comprobante.id);
 
-    const resultado = await enviarComprobanteNubefact(comprobante, empresa, lineas, comprobanteAfectado);
+    const resultado = await emisionElectronica.emitir(comprobante, empresa, lineas, comprobanteAfectado);
     const estadoFinal = mapearEstado(resultado);
 
     await guardarResultado(comprobante.id, {
