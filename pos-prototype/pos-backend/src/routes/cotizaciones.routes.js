@@ -11,6 +11,7 @@ router.post('/', exigirPermiso('emitirBoletaRecibo'), ctrl.crear);
 router.put('/:id', exigirPermiso('emitirBoletaRecibo'), ctrl.actualizar);
 router.patch('/:id/enviar', exigirPermiso('emitirBoletaRecibo'), ctrl.enviar);
 router.patch('/:id/rechazar', exigirPermiso('emitirBoletaRecibo'), ctrl.rechazar);
+router.patch('/:id/cancelar', exigirPermiso('emitirBoletaRecibo'), ctrl.cancelar);
 router.post('/:id/confirmar', exigirPermiso('emitirBoletaRecibo'), ctrl.confirmar);
 
 module.exports = router;

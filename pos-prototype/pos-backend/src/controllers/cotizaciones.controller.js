@@ -168,9 +168,15 @@ async function enviar(req, res) {
   // Nota: esto solo cambia el estado — no hay envío de correo real todavía
   // (no hay proveedor de email configurado). El botón queda listo para
   // conectarse a uno cuando se defina (SendGrid, SES, etc.).
+  await auditoria.registrar({
+    companyId: req.usuario.companyId, usuarioId: req.usuario.id,
+    accion: 'cotizacion.enviar', entidad: 'cotizacion', entidadId: rows[0].id,
+  });
   res.json(rows[0]);
 }
 
+/** El CLIENTE la rechaza (no la quiere) — distinto de cancelar() abajo,
+ * que es el NEGOCIO anulándola antes de tener respuesta. */
 async function rechazar(req, res) {
   const { rows } = await pool.query(
     `UPDATE cotizaciones SET estado = 'rechazada'
@@ -179,6 +185,30 @@ async function rechazar(req, res) {
     [req.params.id, req.usuario.companyId]
   );
   if (!rows[0]) throw new ApiError(409, 'NO_DISPONIBLE', 'Esta cotización ya no se puede rechazar.');
+  await auditoria.registrar({
+    companyId: req.usuario.companyId, usuarioId: req.usuario.id,
+    accion: 'cotizacion.rechazar', entidad: 'cotizacion', entidadId: rows[0].id,
+  });
+  res.json(rows[0]);
+}
+
+/** El NEGOCIO la cancela (se equivocaron, ya no aplica, etc.) — misma
+ * disponibilidad que rechazar(), pero un motivo distinto en el
+ * historial: acá nadie del lado del cliente dijo que no. */
+async function cancelar(req, res) {
+  const { motivo } = req.body;
+  const { rows } = await pool.query(
+    `UPDATE cotizaciones SET estado = 'cancelada'
+      WHERE id = $1 AND company_id = $2 AND estado IN ('borrador','enviada')
+      RETURNING id, estado`,
+    [req.params.id, req.usuario.companyId]
+  );
+  if (!rows[0]) throw new ApiError(409, 'NO_DISPONIBLE', 'Esta cotización ya no se puede cancelar.');
+  await auditoria.registrar({
+    companyId: req.usuario.companyId, usuarioId: req.usuario.id,
+    accion: 'cotizacion.cancelar', entidad: 'cotizacion', entidadId: rows[0].id,
+    detalle: { motivo: motivo || null },
+  });
   res.json(rows[0]);
 }
 
@@ -248,4 +278,4 @@ async function confirmar(req, res) {
   res.json({ cotizacion: { id: cotizacion.id, estado: 'confirmada' }, venta, comprobante: { id: comprobanteId, ...resultadoEnvio } });
 }
 
-module.exports = { listar, obtener, crear, actualizar, enviar, rechazar, confirmar };
+module.exports = { listar, obtener, crear, actualizar, enviar, rechazar, cancelar, confirmar };

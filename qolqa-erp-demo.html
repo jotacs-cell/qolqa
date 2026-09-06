@@ -2100,11 +2100,12 @@
       }
       // Acciones de una cotización mostrada como fila dentro de Ventas
       // (ver/editar, confirmar → genera la venta, rechazar).
-      var cotBtn = e.target.closest('button[data-cot-ver], button[data-cot-confirmar], button[data-cot-rechazar]');
+      var cotBtn = e.target.closest('button[data-cot-ver], button[data-cot-confirmar], button[data-cot-rechazar], button[data-cot-cancelar]');
       if (cotBtn) {
         if (cotBtn.hasAttribute('data-cot-ver')) verDetalleCotizacion(cotBtn.getAttribute('data-cot-ver'));
         else if (cotBtn.hasAttribute('data-cot-confirmar')) confirmarCotizacion(cotBtn.getAttribute('data-cot-confirmar'));
         else if (cotBtn.hasAttribute('data-cot-rechazar')) rechazarCotizacion(cotBtn.getAttribute('data-cot-rechazar'));
+        else if (cotBtn.hasAttribute('data-cot-cancelar')) cancelarCotizacion(cotBtn.getAttribute('data-cot-cancelar'));
         return;
       }
       var btn = e.target.closest('[data-detail]');
@@ -2679,7 +2680,8 @@
             '<td><div class="row-actions">' +
             '<button data-cot-ver="' + c.id + '" title="Ver / editar"><svg class="icon" style="width:13px;height:13px"><use href="#i-doc"/></svg></button>' +
             '<button data-cot-confirmar="' + c.id + '" title="Confirmar (genera la venta)"><svg class="icon" style="width:13px;height:13px"><use href="#i-sales"/></svg></button>' +
-            '<button data-cot-rechazar="' + c.id + '" title="Rechazar"><svg class="icon" style="width:13px;height:13px"><use href="#i-x"/></svg></button>' +
+            '<button data-cot-rechazar="' + c.id + '" title="Rechazar (el cliente no la quiere)"><svg class="icon" style="width:13px;height:13px"><use href="#i-x"/></svg></button>' +
+            '<button data-cot-cancelar="' + c.id + '" title="Cancelar (la anulamos nosotros)"><svg class="icon" style="width:13px;height:13px"><use href="#i-x"/></svg></button>' +
             '</div></td></tr>'
         };
       });
@@ -3120,6 +3122,9 @@
       confirmada: { label: 'Confirmada', tone: 'success' },
       vencida: { label: 'Vencida', tone: 'warning' },
       rechazada: { label: 'Rechazada', tone: 'danger' },
+      // El CLIENTE rechaza (danger) vs. el NEGOCIO cancela antes de tener
+      // respuesta (neutral) — mismo estado terminal, motivo distinto.
+      cancelada: { label: 'Cancelada', tone: 'neutral' },
     };
 
     var PEDIDO_BADGE = {
@@ -5157,12 +5162,31 @@
       if (!(await confirmarAccion({
         titulo: 'Rechazar cotización',
         mensaje: '¿Rechazar ' + codigo(id) + '?',
-        detalle: 'Esta acción no se puede deshacer.',
+        detalle: 'El cliente no la aceptó. Esta acción no se puede deshacer.',
         textoConfirmar: 'Rechazar',
       }))) return;
       try {
         await posFetch('/cotizaciones/' + id + '/rechazar', { method: 'PATCH' });
         toast(codigo(id) + ' rechazada.', 'info');
+        await cargarReales();
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    /** Distinto de rechazar(): acá es EL NEGOCIO quien la anula antes de
+     * tener respuesta del cliente (se equivocaron, ya no aplica, etc.) —
+     * mismo estado terminal, pero un motivo distinto en el historial. */
+    async function cancelarCotizacion(id) {
+      if (!(await confirmarAccion({
+        titulo: 'Cancelar cotización',
+        mensaje: '¿Cancelar ' + codigo(id) + '?',
+        detalle: 'La anulas tú, no el cliente. Esta acción no se puede deshacer.',
+        textoConfirmar: 'Cancelar cotización',
+      }))) return;
+      try {
+        await posFetch('/cotizaciones/' + id + '/cancelar', { method: 'PATCH' });
+        toast(codigo(id) + ' cancelada.', 'info');
         await cargarReales();
       } catch (err) {
         toast(err.message, 'error');

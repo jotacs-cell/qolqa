@@ -833,3 +833,8 @@ COMMIT;
 --    operación) que cubra todas sus líneas — ver
 --    services/notasCredito.service.js. Recién ahí `anulado` pasa a TRUE
 --    y la venta original pasa a estado_documento = 'anulada'.
+
+-- Migración 019: estado "cancelada" real para cotizaciones — distinto de
+-- "rechazada" (el cliente la rechaza) cuando es el NEGOCIO quien la anula
+-- antes de tener respuesta.
+ALTER TYPE estado_cotizacion ADD VALUE 'cancelada';
