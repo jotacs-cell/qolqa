@@ -2564,6 +2564,15 @@
      * se queda con las listas de muestra tal cual estaban.
      * ============================================================ */
     async function cargarReales() {
+      // entrarAlDashboard() llama esto SIN esperarlo (fire-and-forget) para
+      // no bloquear el login mientras carga — pero eso deja una ventana de
+      // uno o dos segundos donde el dashboard YA se ve interactivo pero
+      // REAL.cargado todavía es false. Si el usuario hace clic en algo
+      // gateado por "esFs() && REAL.cargado" justo en esa ventana, ve un
+      // aviso de "cambia de empresa" que es engañoso — está en la empresa
+      // correcta, solo hay que esperar. Este toast le avisa que espere en
+      // vez de dejarlo adivinar.
+      if (esFs()) toast('Cargando tus datos reales…', 'info');
       try {
         var [productosRes, clientesRes, ventasRes, cotizacionesRes, pedidosRes, almacenesRes, kardexRes, transferenciasRes, proveedoresRes, comprasRes, ordenesCompraRes, cajaActualRes, cajaHistorialRes, oportunidadesRes, catalogoRes, cuentasBancariasRes, pagosRes, usuariosRes, logoRes, suscripcionRes, comprobantesPagoRes] = await Promise.all([
           posFetch('/productos?limit=100'),
@@ -2621,7 +2630,16 @@
           renderCrm(); renderCatalogoVirtual(); renderLogoEmpresa(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
         }
       } catch (e) {
-        // pos-backend no disponible: todas las vistas reales se quedan con datos de muestra.
+        // Antes esto se tragaba el error en silencio — si UN SOLO fetch de
+        // los ~20 de arriba fallaba, REAL.cargado se quedaba en false PARA
+        // SIEMPRE y todas las vistas reales volvían a los datos de muestra
+        // sin ningún aviso, ni siquiera en la consola. Ahora, si el usuario
+        // está en la empresa real, se lo decimos explícitamente en vez de
+        // dejarlo pensar que está en la empresa equivocada.
+        console.error('cargarReales() falló:', e);
+        if (esFs()) {
+          toast('No se pudieron cargar tus datos reales — revisa tu conexión e intenta de nuevo. (' + (e && e.message ? e.message : 'error desconocido') + ')', 'error');
+        }
       }
     }
 
