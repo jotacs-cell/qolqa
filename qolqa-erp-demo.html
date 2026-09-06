@@ -1133,12 +1133,10 @@
             </div>
 
             <div class="settings-panel" id="panel-series">
-              <div class="card"><div class="empty-state compact">
-                <div class="empty-icon"><svg class="icon" style="width:100%;height:100%"><use href="#i-billing"/></svg></div>
-                <h2>Series y comprobantes</h2>
-                <p>Series de facturas/boletas por sucursal y credenciales del proveedor de facturación electrónica.</p>
-                <span class="phase-tag">Llega en la <span class="n">Fase 3</span> del roadmap</span>
-              </div></div>
+              <div class="card">
+                <div class="card-head"><h3>Series y comprobantes</h3></div>
+                <div class="card-body refreshable" id="seriesComprobantesBody"></div>
+              </div>
             </div>
 
             <div class="settings-panel" id="panel-pagos">
@@ -2169,6 +2167,7 @@
       renderCrm();
       renderCatalogoVirtual();
       renderLogoEmpresa();
+      renderSeriesComprobantes();
       renderMetodosPago();
       renderSucursales();
       renderUsuarios();
@@ -2574,7 +2573,7 @@
       // vez de dejarlo adivinar.
       if (esFs()) toast('Cargando tus datos reales…', 'info');
       try {
-        var [productosRes, clientesRes, ventasRes, cotizacionesRes, pedidosRes, almacenesRes, kardexRes, transferenciasRes, proveedoresRes, comprasRes, ordenesCompraRes, cajaActualRes, cajaHistorialRes, oportunidadesRes, catalogoRes, cuentasBancariasRes, pagosRes, usuariosRes, logoRes, suscripcionRes, comprobantesPagoRes] = await Promise.all([
+        var [productosRes, clientesRes, ventasRes, cotizacionesRes, pedidosRes, almacenesRes, kardexRes, transferenciasRes, proveedoresRes, comprasRes, ordenesCompraRes, cajaActualRes, cajaHistorialRes, oportunidadesRes, catalogoRes, cuentasBancariasRes, pagosRes, usuariosRes, logoRes, seriesRes, suscripcionRes, comprobantesPagoRes] = await Promise.all([
           posFetch('/productos?limit=100'),
           posFetch('/clientes?limit=100'),
           posFetch('/ventas?limit=50'),
@@ -2594,6 +2593,7 @@
           posFetch('/empresas/mi-empresa/pagos'),
           posFetch('/auth/usuarios'),
           posFetch('/empresas/mi-empresa/logo'),
+          posFetch('/empresas/mi-empresa/series'),
           // Estas dos dependen del proxy hacia qolqa-backend (otro
           // servicio) — si falla, no debe tumbar el resto de datos reales.
           posFetch('/empresas/mi-empresa/suscripcion').catch(function () { return null; }),
@@ -2612,6 +2612,7 @@
         REAL.pagos = pagosRes || {};
         REAL.usuarios = usuariosRes.data || [];
         REAL.logo = logoRes || {};
+        REAL.series = seriesRes.data || [];
         REAL.proveedores = proveedoresRes.data || [];
         REAL.compras = comprasRes.data || [];
         REAL.ordenesCompra = ordenesCompraRes.data || [];
@@ -2627,7 +2628,7 @@
           renderPedidos(); renderAlmacenes(); renderKardex(); renderTransferencias();
           renderProveedores(); renderCompras(); renderOrdenesCompra();
           renderCaja(); renderCuentasPorCobrar(); renderCuentasPorPagar();
-          renderCrm(); renderCatalogoVirtual(); renderLogoEmpresa(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
+          renderCrm(); renderCatalogoVirtual(); renderLogoEmpresa(); renderSeriesComprobantes(); renderMetodosPago(); renderUsuarios(); renderMiPlan();
         }
       } catch (e) {
         // Antes esto se tragaba el error en silencio — si UN SOLO fetch de
@@ -3347,6 +3348,82 @@
           }
         });
       }
+    }
+
+    var TIPO_COMPROBANTE_LABEL = { factura: 'Factura', boleta: 'Boleta', nota_credito: 'Nota de crédito', nota_debito: 'Nota de débito' };
+
+    /* Series y correlativos — de solo lectura para todos, editable (subir
+     * el correlativo) solo para admin. Sirve sobre todo para continuar la
+     * numeración de un sistema de facturación anterior sin saltos ni
+     * choques: se ajusta ANTES de la primera venta real en FacturasPOS. */
+    function renderSeriesComprobantes() {
+      var cont = document.getElementById('seriesComprobantesBody');
+      if (!cont) return;
+      if (!(esFs() && REAL.cargado)) {
+        cont.innerHTML = '<p style="color:var(--ink-faint);font-size:12.8px">Cambia a Ferretería San Martín para ver tus series reales.</p>';
+        return;
+      }
+      var esAdmin = REAL.usuario && REAL.usuario.rol === 'admin';
+      cont.innerHTML =
+        '<p style="font-size:12.8px;color:var(--ink-soft);margin:0 0 14px">El "Próximo" es el número que va a llevar el siguiente comprobante de esa serie.' +
+        (esAdmin ? ' Ajusta el correlativo si vienes de otro sistema de facturación y necesitas continuar la numeración sin saltos — solo se puede subir, nunca bajar (bajarlo repetiría un número que ya salió).' : '') +
+        '</p>' +
+        '<table><thead><tr><th>Tipo</th><th>Serie</th><th class="num">Correlativo actual</th><th class="num">Próximo</th><th>Estado</th>' + (esAdmin ? '<th></th>' : '') + '</tr></thead><tbody>' +
+        (REAL.series || []).map(function (s) {
+          return '<tr>' +
+            '<td>' + esc(TIPO_COMPROBANTE_LABEL[s.tipo_comprobante] || s.tipo_comprobante) + '</td>' +
+            '<td class="mono">' + esc(s.serie) + '</td>' +
+            '<td class="num mono">' + s.correlativo_actual + '</td>' +
+            '<td class="num mono">' + (Number(s.correlativo_actual) + 1) + '</td>' +
+            '<td><span class="pill ' + (s.activa ? 'success' : 'neutral') + '">' + (s.activa ? 'Activa' : 'Inactiva') + '</span></td>' +
+            (esAdmin ? '<td><button type="button" class="btn-ghost" data-editar-serie="' + s.id + '" style="font-size:12px;padding:4px 10px">Ajustar</button></td>' : '') +
+            '</tr>';
+        }).join('') +
+        '</tbody></table>';
+
+      if (esAdmin) {
+        cont.querySelectorAll('button[data-editar-serie]').forEach(function (btn) {
+          btn.addEventListener('click', function () { abrirEditarSerie(btn.getAttribute('data-editar-serie')); });
+        });
+      }
+    }
+
+    function abrirEditarSerie(id) {
+      var s = (REAL.series || []).filter(function (x) { return String(x.id) === String(id); })[0];
+      if (!s) return;
+      openModal(
+        '<div class="modal-head"><div><h3 id="modalTitle">Ajustar correlativo</h3><p>' + esc(TIPO_COMPROBANTE_LABEL[s.tipo_comprobante] || s.tipo_comprobante) + ' — ' + esc(s.serie) + '</p></div>' +
+        '<button class="modal-close" data-close aria-label="Cerrar">&times;</button></div>' +
+        '<div class="modal-body"><form id="formEditarSerie" novalidate>' +
+        '<div class="mini-row"><span>Correlativo actual</span><span class="mono">' + s.correlativo_actual + '</span></div>' +
+        '<div class="field" data-field="correlativo_actual" style="margin-top:10px"><label>Nuevo correlativo actual</label><input name="correlativo_actual" type="number" min="' + s.correlativo_actual + '" step="1" value="' + s.correlativo_actual + '"><span class="err">Debe ser un entero mayor o igual al actual — no se puede bajar.</span></div>' +
+        '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px">El siguiente comprobante de ' + esc(s.serie) + ' va a salir con el número que pongas + 1. Solo cambia esto si vienes de otro sistema de facturación y necesitas continuar la numeración.</p>' +
+        '<div class="modal-actions"><button type="button" class="btn-ghost" data-close>Cancelar</button><button type="submit" class="btn-new">Guardar</button></div>' +
+        '</form></div>'
+      );
+      var form = document.getElementById('formEditarSerie');
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        clearErrors(form);
+        var nuevo = Number(form.correlativo_actual.value);
+        if (!Number.isInteger(nuevo) || nuevo < s.correlativo_actual) {
+          fieldError(form.querySelector('[data-field=correlativo_actual]'), 'Debe ser un entero mayor o igual al actual — no se puede bajar.');
+          return;
+        }
+        var btn = form.querySelector('button[type=submit]');
+        btn.disabled = true;
+        try {
+          var actualizada = await posFetch('/empresas/mi-empresa/series/' + id, { method: 'PUT', body: JSON.stringify({ correlativo_actual: nuevo }) });
+          var idx = (REAL.series || []).findIndex(function (x) { return String(x.id) === String(id); });
+          if (idx !== -1) REAL.series[idx] = Object.assign({}, REAL.series[idx], actualizada);
+          closeModal();
+          toast('Correlativo de ' + esc(s.serie) + ' actualizado — el próximo comprobante sale con el número ' + (Number(actualizada.correlativo_actual) + 1) + '.', 'success');
+          renderSeriesComprobantes();
+        } catch (err) {
+          btn.disabled = false;
+          toast(err.message, 'error');
+        }
+      });
     }
 
     /* ============================================================

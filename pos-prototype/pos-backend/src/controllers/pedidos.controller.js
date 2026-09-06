@@ -303,7 +303,9 @@ async function facturar(req, res) {
   // Misma regla que ventas.controller.js#crear: un cajero no puede emitir
   // facturas — facturar un pedido con tipo_comprobante "factura" es otra
   // forma de emitir un comprobante y no debe saltarse esta restricción.
-  if (tipo_comprobante === 'factura' && !tienePermiso(req.usuario.rol, 'emitirFactura')) {
+  // (Ver el comentario largo en ventas.controller.js#crear: esta llamada
+  // estaba rota — faltaba companyId y el await — y por eso nunca bloqueó nada.)
+  if (tipo_comprobante === 'factura' && !(await tienePermiso(req.usuario.companyId, req.usuario.rol, 'emitirFactura'))) {
     throw new ApiError(403, 'PERMISO_INSUFICIENTE', 'Tu rol no puede emitir facturas — solo boletas o recibos.');
   }
 

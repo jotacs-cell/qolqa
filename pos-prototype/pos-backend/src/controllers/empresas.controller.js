@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { pool, conTransaccion } = require('../config/db');
 const ApiError = require('../utils/ApiError');
+const auditoria = require('../services/auditoria.service');
 
 const RUC_REGEX = /^\d{11}$/;
 const CORREO_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -236,6 +237,62 @@ async function actualizarLogo(req, res) {
   res.json({ logo_base64: logo_base64 || null });
 }
 
+/** Series de comprobantes (F001, B001, etc.) con su correlativo actual —
+ * ver correlativos.service.js#reservarCorrelativo, que es quien de verdad
+ * las usa al emitir. Este endpoint es solo para que el admin las vea antes
+ * de decidir si hace falta ajustar alguna. */
+async function obtenerSeries(req, res) {
+  const { rows } = await pool.query(
+    `SELECT id, tipo_comprobante, serie, correlativo_actual, activa
+       FROM series_comprobantes WHERE company_id = $1 ORDER BY tipo_comprobante, serie`,
+    [req.usuario.companyId]
+  );
+  res.json({ data: rows });
+}
+
+/**
+ * Ajusta manualmente el correlativo_actual de una serie — para continuar
+ * la numeración de un sistema de facturación anterior sin saltos: el
+ * PRÓXIMO comprobante de esa serie sale con correlativo_actual + 1 (ver
+ * reservarCorrelativo). Solo ADMIN, y solo hacia ARRIBA — nunca se permite
+ * bajarlo, porque eso repetiría un número que ya salió y podría terminar
+ * reportando dos comprobantes distintos con el mismo correlativo a SUNAT.
+ */
+async function actualizarSerie(req, res) {
+  if (req.usuario.rol !== 'admin') {
+    throw new ApiError(403, 'SOLO_ADMIN', 'Solo un administrador puede ajustar el correlativo de una serie.');
+  }
+  const { correlativo_actual } = req.body;
+  if (!Number.isInteger(correlativo_actual) || correlativo_actual < 0) {
+    throw new ApiError(422, 'CORRELATIVO_INVALIDO', 'correlativo_actual debe ser un entero mayor o igual a 0.');
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE series_comprobantes SET correlativo_actual = $1
+      WHERE id = $2 AND company_id = $3 AND correlativo_actual <= $1
+      RETURNING id, tipo_comprobante, serie, correlativo_actual`,
+    [correlativo_actual, req.params.id, req.usuario.companyId]
+  );
+  if (!rows[0]) {
+    const { rows: existe } = await pool.query(
+      'SELECT correlativo_actual FROM series_comprobantes WHERE id = $1 AND company_id = $2',
+      [req.params.id, req.usuario.companyId]
+    );
+    if (!existe[0]) throw new ApiError(404, 'NO_ENCONTRADA', 'Serie no encontrada.');
+    throw new ApiError(
+      409, 'CORRELATIVO_MENOR',
+      `No se puede bajar el correlativo — ya está en ${existe[0].correlativo_actual}. Bajarlo repetiría un número que ya salió.`
+    );
+  }
+
+  await auditoria.registrar({
+    companyId: req.usuario.companyId, usuarioId: req.usuario.id,
+    accion: 'serie.actualizar_correlativo', entidad: 'serie_comprobante', entidadId: rows[0].id,
+    detalle: { correlativo_actual },
+  });
+  res.json(rows[0]);
+}
+
 module.exports = {
   crear,
   obtenerCatalogo,
@@ -247,4 +304,6 @@ module.exports = {
   listarComprobantesPago,
   obtenerLogo,
   actualizarLogo,
+  obtenerSeries,
+  actualizarSerie,
 };

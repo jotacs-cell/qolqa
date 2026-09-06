@@ -15,7 +15,16 @@ async function crear(req, res) {
   // (emitirFactura solo está en la lista de admin/vendedor, ver permisos.js).
   // Va aquí y no en la ruta porque depende de tipo_comprobante, que viene en
   // el body, no en la URL.
-  if (tipo_comprobante === 'factura' && !tienePermiso(req.usuario.rol, 'emitirFactura')) {
+  //
+  // OJO — este chequeo estuvo COMPLETAMENTE ROTO desde el inicio: tienePermiso
+  // es `async function tienePermiso(companyId, rol, accion)` (3 argumentos),
+  // pero se llamaba como `tienePermiso(req.usuario.rol, 'emitirFactura')` (2
+  // argumentos, sin await). Eso significa: `rol` recibía companyId, `accion`
+  // quedaba `undefined`, Y — lo grave — como nunca se esperaba (await), el
+  // `!tienePermiso(...)` negaba una Promise (siempre truthy) en vez del
+  // resultado real, así que la condición completa daba `false` SIEMPRE. Un
+  // cajero podía emitir facturas sin que este bloqueo hiciera nada.
+  if (tipo_comprobante === 'factura' && !(await tienePermiso(req.usuario.companyId, req.usuario.rol, 'emitirFactura'))) {
     throw new ApiError(403, 'PERMISO_INSUFICIENTE', 'Tu rol no puede emitir facturas — solo boletas o recibos.');
   }
 
